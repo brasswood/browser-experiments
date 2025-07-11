@@ -400,8 +400,8 @@ class Memory(Context):
     def __init__(self, parent: Context, idx: int, mem: int | None):
         self.m_parent = parent
         self.mem = mem
-        self.m_name = human_mem_str(mem)
-        self.base_dir = Path(f"{idx:02d}_{self.m_name}")
+        self.m_name = f"{idx:02d}_{human_mem_str(mem)}"
+        self.base_dir = Path(self.m_name)
         self.m_logger = None
         os.makedirs(self.dir())
         self.m_procs: list[Popen[bytes]] = []

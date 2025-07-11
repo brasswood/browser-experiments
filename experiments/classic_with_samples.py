@@ -61,13 +61,13 @@ class FunkyContext(Context):
         return self._inner._stop_monitor()
 
     def name(self) -> str:
-        return self.m_parent.name()
+        return self._inner.name()
 
     def exit_timeouts(self) -> ExitTimeouts:
         return self.m_parent.exit_timeouts()
 
     def rel_base_dir(self) -> Path:
-        return Path(".")
+        return self._inner.rel_base_dir()
     
     def parent(self) -> Context:
         return self.m_parent
@@ -119,7 +119,8 @@ def main() -> None:
                                         took_long_time = True
                                     except Exception:
                                         pass
-                                    path_2 = f"{sub_ex.name()}_{last_ex.name()}_{mem_ex.name()}"
+                                    last_ex.stop_monitor()
+                                    path_2 = f"{sub_ex.name()}_{last_ex.name()}_{mem_ex.name()}.svg"
                                     shutil.copy2(last_ex.path_of(ContextPath("graph.svg")), ex.path_of(all_graphs_dir)/path_2)
                             if took_long_time:
                                 break
@@ -130,13 +131,13 @@ def main() -> None:
                                 try:
                                     funky_ex.set_count(j)
                                     params.module.run_experiment(funky_ex)
-                                    funky_ex.stop_monitor()
                                 except TookLongTimeException:
                                     took_long_time_warning(funky_ex)
                                     took_long_time = True
                                 except Exception:
                                     pass
-                                path_2 = f"{sub_ex.name()}_{funky_ex.name()}_{mem_ex.name()}"
+                                funky_ex.stop_monitor()
+                                path_2 = f"{sub_ex.name()}_{funky_ex.name()}_{mem_ex.name()}.svg"
                                 shutil.copy2(funky_ex.path_of(ContextPath("graph.svg")), ex.path_of(all_graphs_dir)/path_2)
                             if took_long_time:
                                 break
