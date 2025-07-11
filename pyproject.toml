@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "experiments"
+version = "0.0.6"
+dependencies = [
+  "pyautogui==0.9.53",
+  "opencv-python",
+  "humanize",
+  "pyperclip",
+  "gtk",
+]
+
+[project.scripts]
+ex-calendar-native = "experiments.calendar_native:main"
+ex-calendar-web = "experiments.calendar_web:main"
+ex-chat-web = "experiments.chat_web:main"
+ex-mail-web = "experiments.mail_web:main"
+ex-chat-native = "experiments.chat_native:main"
+ex-mail-native = "experiments.mail_native:main"
+ex-all = "experiments:run_all"
+browser-bench = "experiments:browser_bench:main"
+
+[tool.mypy]
+strict = true

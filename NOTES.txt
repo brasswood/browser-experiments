@@ -1,0 +1,8 @@
+Firefox additional config:
+
+Suppress "restore session" prompt: about:config > set browser.sessionstore.resume_from_crash to false (https://support.mozilla.org/en-US/questions/1418488) 
+
+Suppress "safe mode" prompt: about:config > set toolkit.startup.max_resumed_crashes to -1 (https://stackoverflow.com/a/21294259/3882118)
+
+Evolution:
+May get StartServiceByName timeout. If so, ON THE SAME DESKTOP SESSION, run busctl --user and confirm org.freedesktop.secrets is not running. Then start gnome-keyring-daemon --daemonize. See: https://superuser.com/q/1892770/749114

@@ -1,0 +1,27 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{geometry}
+\usepackage{svg}
+\usepackage{lscape}
+\usepackage{subfig}
+\usepackage{rotating}
+\usepackage{relsize}
+\pagestyle{empty}
+\geometry{
+    letterpaper,
+    margin=0.375in}
+\newcommand{\fig}[2]{\subfloat[#1]{\includesvg[width=0.5\textwidth, pretex=\relscale{0.5}]{#2}}}
+
+\begin{document}
+\begin{figure}
+    \centering
+	\fig{calendar, native (gnome-calendar)}{calendar_native.svg}
+	\fig{calendar, web from about:blank (Google Calendar)}{calendar_web.svg}
+
+	\fig{chat, native (dino-im)}{chat_native.svg}
+	\fig{chat, web from about:blank (movim)}{chat_web.svg}
+
+	\fig{mail, native (evolution)}{mail_native.svg}
+	\fig{mail, web from about:blank (Outlook)}{mail_web.svg}
+\end{figure}
+\end{document}
