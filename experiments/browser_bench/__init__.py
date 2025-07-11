@@ -49,7 +49,7 @@ def main() -> None:
             output_dir = Path(sys.argv[1]).joinpath(params.name).joinpath(mem_tag)
             with Experiment(params.name, output_dir, mem) as ex:
                 assert_not_running(params.name)
-                start_with_mem(params.command)
+                start_with_mem(params.command, mem)
                 for j in range(10):
                     try:
                         out = ExperimentPath(str(j))
@@ -73,11 +73,9 @@ def main() -> None:
                         bench_json = ex.path_of(out.joinpath("benchmark.json"))
                         with open(bench_json, 'w') as f:
                             f.write(pyperclip.paste())
-                        ex.add_file(bench_json)
                         time_file = ex.path_of(out.joinpath("time_ms"))
                         with open(time_file, 'w') as f:
                             f.write(str((end - start) * 1000))
-                        ex.add_file(time_file)
                         reload_page(params.name)
                     except Exception as e:
                         ex.logger.exception(e)

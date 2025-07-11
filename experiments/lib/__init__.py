@@ -15,7 +15,7 @@
 from pathlib import Path
 import importlib.resources as res
 import inspect
-from typing import Literal, Tuple
+from typing import Literal
 import subprocess
 from subprocess import Popen
 from signal import SIGINT, SIGABRT
@@ -65,13 +65,9 @@ def get_resource(filename: str) -> Path:
     return res.as_file(res.files(module).joinpath(filename)).__enter__()
 
 GEN_INFO = get_resource("gen-info.sh")
-ADD_FILE = get_resource("add-file.sh")
 
 def gen_info(out: Path) -> None:
     subprocess.run(["bash", str(GEN_INFO), str(out)])
-
-def add_file(copy_to: Path, info_file: Path, *args: Path) -> None:
-    subprocess.run(["bash", str(ADD_FILE)] + [ str(arg) for arg in args ] + [str(copy_to), str(info_file)])
 
 chromium_reload_button = None
 firefox_reload_button = None
@@ -105,10 +101,10 @@ def load_page(browser: Literal["chromium", "firefox"], url: str) -> None:
     pyautogui.write(url)
     pyautogui.press('enter')
 
-def start_monitor(regex: str, graph_out: Path, stdout_to_file: Path) -> Tuple[Popen[bytes], Path, Path]:
+def start_monitor(regex: str, graph_out: Path, stdout_to_file: Path) -> Popen[bytes]:
     with open(stdout_to_file, 'w') as f:
         popen = subprocess.Popen(["smaps-profiler", "-c", "-j", "-g", str(graph_out), "-m", regex], stdout=f)
-        return (popen, graph_out, stdout_to_file)
+        return popen
 
 def mem_str(mem: int | None) -> str:
     if mem is None:
@@ -147,7 +143,6 @@ try:
     def _screenshot(self: "Experiment", name: ExperimentPath = ExperimentPath("app.png")) -> None:
         path = self.path_of(name)
         pyautogui.screenshot(path)
-        self.add_file(path)
 except KeyError: # DISPLAY not defined
     def _screenshot(self: "Experiment", name: ExperimentPath = ExperimentPath("app.png")) -> None:
         pass
@@ -166,7 +161,7 @@ class Experiment(AbstractContextManager["Experiment", None]):
         info_path = self.path_of(info_file)
         gen_info(info_path)
         self.info_path = info_path
-        self.monitor_tuple: Tuple[Popen[bytes], Path, Path] | None = None
+        self.monitor: Popen[bytes] | None = None
         self.screenshot = MethodType(_screenshot, self)
         self.mem_limit = mem_limit
         self.exit_exception_timeout = exit_exception_timeout
@@ -195,9 +190,6 @@ class Experiment(AbstractContextManager["Experiment", None]):
     def parse_sysargs() -> "Experiment":
         ns = parse_sysargs()
         return Experiment(ns.output_directory, ns.memory_limit, ns.info_filename)
-
-    def add_file(self, *args: Path) -> None:
-        add_file(self.output_dir, self.info_path, *args)
 
     # use this if you want Experiment context manager to automatically close app on exit or error
     def start(self, command: list[str]) -> Popen[bytes]:
@@ -232,22 +224,20 @@ class Experiment(AbstractContextManager["Experiment", None]):
         return duration
             
     def start_monitor(self, regex: str, graph_file: ExperimentPath = ExperimentPath("graph.svg"), stdout_file: ExperimentPath = ExperimentPath("smaps_profiler.ndjson"), check_not_running: bool = True) -> None:
-        if self.monitor_tuple:
+        if self.monitor:
             self.logger.warning("Experiment.start_monitor() called when Experiment.monitor_tuple was not None. Refusing to do anything.")
             return
         if check_not_running:
             assert_not_running(regex)
         graph = self.path_of(graph_file)
         stdout = self.path_of(stdout_file)
-        self.monitor_tuple = start_monitor(regex, graph, stdout)
+        self.monitor = start_monitor(regex, graph, stdout)
 
     def _stop_monitor(self) -> bool:
-        if self.monitor_tuple:
-            (popen, graph, stdout) = self.monitor_tuple
-            popen.send_signal(SIGINT)
-            popen.wait()
-            self.add_file(graph, stdout)
-            self.monitor_tuple = None
+        if self.monitor:
+            self.monitor.send_signal(SIGINT)
+            self.monitor.wait()
+            self.monitor = None
             return True
         else:
             return False
@@ -282,7 +272,6 @@ class Experiment(AbstractContextManager["Experiment", None]):
                 except PleaseNoMoreException:
                     took_long_time = True
         self._stop_monitor()
-        self.add_file(Path(self.logging_file))
         if took_long_time:
             raise PleaseNoMoreException
         return ret
