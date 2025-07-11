@@ -19,7 +19,7 @@ from . import calendar_web, calendar_firefox, calendar_native, chat_web, chat_fi
 import sys
 import os
 import shutil
-from .lib import ContextPath, Memory, Sub, Experiment, TookLongTimeException, decay
+from .lib import MEGABYTE, ContextPath, Memory, Sub, Experiment, TookLongTimeException, decay
 
 class ExperimentParams:
     def __init__(self, module: ModuleType, mems: List[int | None] = [None]) -> None:
@@ -49,13 +49,7 @@ ALL: list[ExperimentParams] = [
     ExperimentParams(mail_native),
 ]
 
-KIBIBYTE: int = 1024
-MEBIBYTE: int = KIBIBYTE * 1024
-GIBIBYTE: int = MEBIBYTE * 1024
 
-KILOBYTE: int = 1000
-MEGABYTE: int = KILOBYTE * 1000
-GIGABYTE: int = MEGABYTE * 1000
 
 RATE: float = 0.7
 N: int = 10

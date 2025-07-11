@@ -17,7 +17,7 @@ import shutil
 import time
 
 import pyperclip
-from ..lib import ContextPath, Experiment, Memory, Sub, TookLongTimeException, assert_not_running, get_resource, locate_center, reload_page
+from ..lib import MEGABYTE, ContextPath, Experiment, Memory, Sub, TookLongTimeException, assert_not_running, get_resource, locate_center, reload_page, decay
 import sys
 from pathlib import Path
 
@@ -30,9 +30,13 @@ class ExperimentParams:
         self.mems = mems
 
 URL = "https://browserbench.org/Speedometer3.1/"
+
+RATE = 0.7
+N = 10
+
 EXPERIMENTS = [
-    ExperimentParams("chromium", ["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", URL], [None]),
-    ExperimentParams("firefox", ["firefox", "-P", "Experiments", URL], [None]),
+    ExperimentParams("chromium", ["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", URL], decay(910 * MEGABYTE, RATE, N)),
+    ExperimentParams("firefox", ["firefox", "-P", "Experiments", URL], decay(1380 * MEGABYTE, RATE, N)),
 ]
 
 def main() -> None:
@@ -54,7 +58,7 @@ def main() -> None:
                     with Memory(sub, i, mem) as mem_ex:
                         mem_ex.start(params.command)
                         took_long_time = False
-                        for j in range(2):
+                        for j in range(10):
                             with Sub(mem_ex, f"{j:02d}") as sample_ex:
                                 try:
                                     point = locate_center(start_button, timeout=10)

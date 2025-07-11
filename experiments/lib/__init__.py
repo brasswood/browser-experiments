@@ -129,6 +129,14 @@ def human_mem_str(mem: int | None) -> str:
     else:
         return naturalsize(mem, True).replace(" ", "")
 
+KIBIBYTE: int = 1024
+MEBIBYTE: int = KIBIBYTE * 1024
+GIBIBYTE: int = MEBIBYTE * 1024
+
+KILOBYTE: int = 1000
+MEGABYTE: int = KILOBYTE * 1000
+GIGABYTE: int = MEGABYTE * 1000
+
 def decay(start: int, rate: float, n: int) -> list[int | None]:
     ret: list[int | None] = [None]
     mem = start
