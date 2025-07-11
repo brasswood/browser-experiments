@@ -15,7 +15,7 @@
 import time
 import pyautogui
 from pyautogui import ImageNotFoundException
-from ..lib import Experiment, Context, load_page
+from ..lib import Experiment, Context
 from .. import lib
 
 def run_experiment(ex: Context) -> None:
@@ -31,7 +31,7 @@ def run_experiment(ex: Context) -> None:
     time.sleep(30)
     ex.screenshot("blank.png")
     # navigate to google calendar
-    load_page("chromium", "calendar.google.com")
+    ex.load_page("chromium", "calendar.google.com")
     # wait another 30
     time.sleep(30)
     ex.screenshot("app.png")

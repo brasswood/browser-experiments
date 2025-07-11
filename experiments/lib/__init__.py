@@ -302,6 +302,12 @@ class Context(AbstractContextManager["Context", bool]):
     def screenshot(self, name: ContextPath | str = "app.png") -> None:
         path = self.path_of(self.to_context_path(name))
         pyautogui.screenshot(path)
+    
+    def reload_page(self, browser: Literal["chromium", "firefox"]) -> None:
+        reload_page(browser)
+
+    def load_page(self, browser: Literal["chromium", "firefox"], url: str) -> None:
+        load_page(browser, url)
 
     def __exit__(self, exc_type: type[BaseException] | None, exc_value: BaseException | None, traceback: TracebackType | None) -> bool:
         if exc_value is None:

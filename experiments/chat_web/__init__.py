@@ -15,7 +15,7 @@
 import time
 import pyautogui
 from pyautogui import ImageNotFoundException
-from ..lib import Experiment, Context, load_page
+from ..lib import Experiment, Context
 from .. import lib
 
 def run_experiment(ex: Context) -> None:
@@ -32,7 +32,7 @@ def run_experiment(ex: Context) -> None:
     time.sleep(30)
     ex.screenshot("blank.png")
     # navigate to mov.im/chat
-    load_page("chromium", 'mov.im/chat')
+    ex.load_page("chromium", 'mov.im/chat')
     start = time.time()
     # try to click Open Hardware Chat, waiting up to 10 seconds for the page to load
     point = pyautogui.locateCenterOnScreen(str(button2), minSearchTime=10, confidence=0.9)

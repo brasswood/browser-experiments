@@ -17,7 +17,7 @@ from logging import Logger
 from pathlib import Path
 from subprocess import Popen
 from typing import Literal
-from .lib import Context, ContextPath, ExitTimeouts, Experiment, Memory, Sub, reload_page
+from .lib import Context, ContextPath, ExitTimeouts, Experiment, Memory, Sub
 import sys
 from . import ALL_MEM
 
@@ -43,7 +43,7 @@ class FunkyContext(Context):
             return self.m_parent.start(command)
         else:
             assert self.browser == "chromium" or self.browser == "firefox"
-            reload_page(self.browser)
+            self.load_page(self.browser, "about:blank")
         return self.m_parent.procs()[0]
 
     def stop(self, app: Popen[bytes], term_timeout: float | None = 30.0, abrt_timeout: float | None = 40.0) -> float:

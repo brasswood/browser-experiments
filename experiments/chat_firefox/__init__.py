@@ -15,7 +15,7 @@
 import time
 import pyautogui
 from pyautogui import ImageNotFoundException
-from ..lib import Experiment, Context, load_page
+from ..lib import Experiment, Context
 from .. import lib
 
 def run_experiment(ex: Context) -> None:
@@ -28,7 +28,7 @@ def run_experiment(ex: Context) -> None:
         ex.screenshot("blank.png")
         # navigate to mov.im/chat
         # unfortunately, the type stub incorrectly says that minSearchTime is a required argument for the following line
-        load_page("firefox", 'mov.im/chat')
+        ex.load_page("firefox", 'mov.im/chat')
         # start a timer
         start = time.time()
         # try to click Open Hardware Chat, waiting up to 10 seconds for the page to load

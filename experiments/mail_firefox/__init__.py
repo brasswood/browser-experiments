@@ -13,7 +13,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import time
-from ..lib import Experiment, Context, load_page
+from ..lib import Experiment, Context
 
 def run_experiment(ex: Context) -> None:
     ex.start_monitor("firefox")
@@ -21,7 +21,7 @@ def run_experiment(ex: Context) -> None:
     # wait 30 on the blank page
     time.sleep(30)
     ex.screenshot("blank.png")
-    load_page("firefox", 'outlook.office365.com')
+    ex.load_page("firefox", 'outlook.office365.com')
     # wait another 30
     time.sleep(30)
     ex.screenshot("app.png")

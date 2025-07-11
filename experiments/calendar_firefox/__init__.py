@@ -13,7 +13,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import time
-from ..lib import Context, Experiment, load_page
+from ..lib import Context, Experiment
 
 def run_experiment(ex: Context) -> None:
     ex.start_monitor("firefox")
@@ -22,7 +22,7 @@ def run_experiment(ex: Context) -> None:
     time.sleep(30)
     ex.screenshot("blank.png")
     # navigate to google calendar
-    load_page("firefox", "calendar.google.com")
+    ex.load_page("firefox", "calendar.google.com")
     # wait another 30
     time.sleep(30)
     ex.screenshot("app.png")
