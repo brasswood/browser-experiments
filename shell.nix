@@ -25,6 +25,7 @@ python3Packages.buildPythonPackage rec {
     tkinter
     humanize
     pyperclip
+    pathspec
     types-PyAutoGUI
     types-pyperclip
   ];

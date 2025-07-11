@@ -6,3 +6,5 @@ Suppress "safe mode" prompt: about:config > set toolkit.startup.max_resumed_cras
 
 Evolution:
 May get StartServiceByName timeout. If so, ON THE SAME DESKTOP SESSION, run busctl --user and confirm org.freedesktop.secrets is not running. Then start gnome-keyring-daemon --daemonize. See: https://superuser.com/q/1892770/749114
+
+To run an individual experiment in this package (example): python -m experiments.browser_bench <output_dir>

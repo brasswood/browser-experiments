@@ -10,7 +10,7 @@ dependencies = [
   "opencv-python",
   "humanize",
   "pyperclip",
-  "gtk",
+  "pathspec",
 ]
 
 [project.scripts]

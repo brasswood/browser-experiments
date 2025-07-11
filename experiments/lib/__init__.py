@@ -18,6 +18,7 @@ import logging
 from pathlib import Path
 import importlib.resources as res
 import inspect
+import shutil
 from typing import IO, Any, Literal, Self
 import subprocess
 from subprocess import Popen
@@ -30,9 +31,24 @@ from humanize import naturalsize
 import argparse
 from logging import Logger
 import time
+from pathspec import PathSpec
 import pyautogui
 
 
+def project_root() -> Path:
+    return Path(__file__).parent.parent.parent
+
+# ChatGPT gave me this wonderful function which I then heavily modified
+def copy_project(output_dir: Path) -> None:
+    os.makedirs(output_dir)
+    root = project_root()
+    with open(root/".gitignore", 'r') as f:
+        spec = PathSpec.from_lines("gitwildmatch", f)
+    for match in spec.match_tree_entries(root, negate=True):
+        if match.is_dir():
+            os.makedirs(output_dir/match.path)
+        else:
+            shutil.copy2(root/match.path, output_dir/match.path)
 
 class TookLongTimeException(Exception):
     pass
@@ -162,7 +178,7 @@ class ContextPath:
 
 class Context(AbstractContextManager["Context", bool]):
     @classmethod
-    def to_path_t(cls, path: ContextPath | str) -> ContextPath:
+    def to_context_path(cls, path: ContextPath | str) -> ContextPath:
         if isinstance(path, str):
             return ContextPath(path)
         else:
@@ -255,8 +271,8 @@ class Context(AbstractContextManager["Context", bool]):
             return
         if check_not_running:
             assert_not_running(regex)
-        graph = self.path_of(self.to_path_t(graph_file))
-        stdout = self.path_of(self.to_path_t(stdout_file))
+        graph = self.path_of(self.to_context_path(graph_file))
+        stdout = self.path_of(self.to_context_path(stdout_file))
         self.set_monitor(start_monitor(regex, graph, stdout))
 
     def _stop_monitor(self) -> bool:
@@ -274,7 +290,7 @@ class Context(AbstractContextManager["Context", bool]):
             self.logger().warning("Experiment.stop_monitor() called when Experiment.monitor_tuple was falsy.")
 
     def screenshot(self, name: ContextPath | str = "app.png") -> None:
-        path = self.path_of(self.to_path_t(name))
+        path = self.path_of(self.to_context_path(name))
         pyautogui.screenshot(path)
 
     def __exit__(self, exc_type: type[BaseException] | None, exc_value: BaseException | None, traceback: TracebackType | None) -> bool:
@@ -314,7 +330,15 @@ class Experiment(Context):
         os.makedirs(self.dir())
         info_path = self.path_of(ContextPath("info.yaml"))
         gen_info(info_path)
-        self.info_path = info_path
+        with self.open(ContextPath("sys_argv"), 'w') as f:
+            f.write(" ".join(sys.argv))
+        # ChatGPT helped
+        cmdline = open(f"/proc/self/cmdline", 'r').read().split('\0')
+        cmdline = " ".join([c for c in cmdline])
+        with self.open(ContextPath("cmdline"), 'w') as f:
+            f.write(f"{os.getcwd()}$ ")
+            f.write(cmdline)
+        copy_project(self.path_of(ContextPath("src")))
         self.m_monitor: Popen[bytes] | None = None
         self.m_exit_timeouts = exit_timeouts
         self.procs_list: list[Popen[bytes]] = []
@@ -360,8 +384,8 @@ class Memory(Context):
     def __init__(self, parent: Context, idx: int, mem: int | None):
         self.m_parent = parent
         self.mem = mem
-        self.base_dir = Path(f"{idx:02d}_{self.m_name}")
         self.m_name = human_mem_str(mem)
+        self.base_dir = Path(f"{idx:02d}_{self.m_name}")
         self.m_logger = None
         os.makedirs(self.dir())
         self.m_procs: list[Popen[bytes]] = []
@@ -399,8 +423,8 @@ class Memory(Context):
 class Sub(Context):
     def __init__(self, parent: Context, name: str):
         self.m_parent = parent
-        self.base_dir = Path(self.m_name)
         self.m_name = name
+        self.base_dir = Path(self.m_name)
         self.m_logger = None
         os.makedirs(self.dir())
         self.m_procs: list[Popen[bytes]] = []
