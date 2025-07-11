@@ -96,8 +96,8 @@ def reload_page(browser: Literal["chromium", "firefox"]) -> None:
     assert point is not None
     pyautogui.click(*point)
     # reload button stuck highlighted in chromium.
-    pyautogui.moveRel(10, 10)
-    pyautogui.moveRel(-10, -10)
+    # pyautogui.moveRel(10, 10)
+    # pyautogui.moveRel(-10, -10)
 
 def load_page(browser: Literal["chromium", "firefox"], url: str) -> None:
     if browser == "chromium":
