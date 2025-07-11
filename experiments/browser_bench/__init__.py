@@ -15,9 +15,8 @@
 import time
 
 import pyperclip
-from ..lib import Experiment, ExperimentPath, assert_not_running, human_mem_str, get_resource, locate_center, reload_page, start_with_mem
+from ..lib import ContextPath, Experiment, Memory, Sub, assert_not_running, get_resource, locate_center, reload_page
 import sys
-import os
 from pathlib import Path
 
 import pyautogui
@@ -39,43 +38,35 @@ def main() -> None:
         print("Must specify output directory")
         sys.exit(1)
 
-    for params in EXPERIMENTS:
-        assert params.name == "chromium" or params.name == "firefox" 
-        start_button = get_resource(f"start_button_{params.name}.png")
-        details_button = get_resource(f"details_button_{params.name}.png")
-        copy_json_button = get_resource(f"copy_json_button_{params.name}.png")
-        for (i, mem) in enumerate(params.mems):
-            mem_tag = "{:02d}_{}".format(i, human_mem_str(mem))
-            output_dir = Path(sys.argv[1]).joinpath(params.name).joinpath(mem_tag)
-            with Experiment(params.name, output_dir, mem) as ex:
-                assert_not_running(params.name)
-                start_with_mem(params.command, mem)
-                for j in range(10):
-                    try:
-                        out = ExperimentPath(str(j))
-                        os.makedirs(ex.path_of(out))
-                        graph_file = out.joinpath("graph.svg")
-                        json_file = out.joinpath("smaps-profiler.ndjson")
-                        point = locate_center(start_button, timeout=10)
+    with Experiment("browser_bench", Path(sys.argv[1])) as ex:
+        for params in EXPERIMENTS:
+            assert params.name == "chromium" or params.name == "firefox"
+            start_button = get_resource(f"start_button_{params.name}.png")
+            details_button = get_resource(f"details_button_{params.name}.png")
+            copy_json_button = get_resource(f"copy_json_button_{params.name}.png")
+            with Sub(ex, params.name) as sub:
+                for (i, mem) in enumerate(params.mems):
+                    assert_not_running(params.name)
+                    with Memory(sub, i, mem) as mem_ex:
+                        mem_ex.start(params.command)
+                        for j in range(2):
+                            with Sub(mem_ex, f"{j:02d}") as sample_ex:
+                                point = locate_center(start_button, timeout=10)
 
-                        ex.start_monitor(params.name, graph_file=graph_file, stdout_file=json_file, check_not_running=False)
+                                sample_ex.start_monitor(params.name, check_not_running=False)
 
-                        start = time.time()
-                        pyautogui.click(*point)
-                        point = locate_center(details_button, timeout=10*60)
-                        end = time.time()
+                                start = time.time()
+                                pyautogui.click(*point)
+                                point = locate_center(details_button, timeout=10*60)
+                                end = time.time()
 
-                        ex.stop_monitor()
+                                sample_ex.stop_monitor()
 
-                        pyautogui.click(*point)
-                        point = locate_center(copy_json_button, timeout=10)
-                        pyautogui.click(*point)
-                        bench_json = ex.path_of(out.joinpath("benchmark.json"))
-                        with open(bench_json, 'w') as f:
-                            f.write(pyperclip.paste())
-                        time_file = ex.path_of(out.joinpath("time_ms"))
-                        with open(time_file, 'w') as f:
-                            f.write(str((end - start) * 1000))
-                        reload_page(params.name)
-                    except Exception as e:
-                        ex.logger().exception(e)
+                                pyautogui.click(*point)
+                                point = locate_center(copy_json_button, timeout=10)
+                                pyautogui.click(*point)
+                                with sample_ex.open(ContextPath("benchmark.json"), 'w') as f:
+                                    f.write(pyperclip.paste())
+                                with sample_ex.open(ContextPath("time_ms"), 'w') as f:
+                                    f.write(str((end - start) * 1000))
+                                reload_page(params.name)

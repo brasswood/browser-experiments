@@ -18,7 +18,7 @@ import logging
 from pathlib import Path
 import importlib.resources as res
 import inspect
-from typing import Literal, Self
+from typing import IO, Any, Literal, Self
 import subprocess
 from subprocess import Popen
 from signal import SIGINT, SIGABRT
@@ -110,9 +110,8 @@ def human_mem_str(mem: int | None) -> str:
     else:
         return naturalsize(mem, True).replace(" ", "")
 
-def start_with_mem(command: list[str], mem: int | None) -> Popen[bytes]:
-    cmd = ["systemd-run", "--user", "--scope", "-p", "MemoryHigh={}".format(mem_str(mem))] + command
-    return subprocess.Popen(cmd)
+def command_with_mem(command: list[str], mem: int | None) -> list[str]:
+    return ["systemd-run", "--user", "--scope", "-p", "MemoryHigh={}".format(mem_str(mem))] + command
 
 def parse_sysargs() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -129,6 +128,20 @@ def locate_center(image: str | Path, timeout: float = 0, confidence: float = 0.9
     assert point is not None
     return point
 
+def get_logger(name: str, file: Path) -> Logger:
+    logger = logging.getLogger(name)
+    # inspired by default format for Rust env_logger
+    formatter = logging.Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s")
+    # https://stackoverflow.com/a/11582124/3882118
+    fh = logging.FileHandler(file)
+    sh = logging.StreamHandler()
+    fh.setFormatter(formatter)
+    sh.setFormatter(formatter)
+    logger.addHandler(fh)
+    logger.addHandler(sh)
+    logger.setLevel(logging.INFO)
+    return logger
+
 class ExitTimeouts:
     def __init__(self, warn: float, term: float, abrt: float):
         self.warn = warn
@@ -144,31 +157,35 @@ class ContextPath:
         ret._inner = ret._inner.joinpath(*pathsegments)
         return ret
 
-    def into_path(self: Self, context: "Context[Self]") -> Path:
+    def into_path(self: Self, context: "Context") -> Path:
         return context.dir().joinpath(self._inner)
 
-class Context[CP: ContextPath](AbstractContextManager["Context", bool]):
+class Context(AbstractContextManager["Context", bool]):
     @classmethod
-    @abstractmethod
-    def path_t(cls) -> type[CP]:
-        pass
-
-    @classmethod
-    def to_path_t(cls, path: CP | str) -> CP:
+    def to_path_t(cls, path: ContextPath | str) -> ContextPath:
         if isinstance(path, str):
-            return cls.path_t()(path)
+            return ContextPath(path)
         else:
             return path
 
-    def path_of(self, path: CP) -> Path:
+    def path_of(self, path: ContextPath) -> Path:
         return path.into_path(self)
+
+    @abstractmethod
+    def name(self) -> str:
+        pass
+
+    def open(self, path: ContextPath, mode: str) -> IO[Any]:
+        p = self.path_of(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        return open(p, mode)
 
     @abstractmethod
     def exit_timeouts(self) -> ExitTimeouts:
         pass
 
     @abstractmethod
-    def parent(self) -> "Context[ContextPath] | None":
+    def parent(self) -> "Context | None":
         pass
 
     @abstractmethod
@@ -183,7 +200,16 @@ class Context[CP: ContextPath](AbstractContextManager["Context", bool]):
             return parent.dir().joinpath(self.rel_base_dir())
 
     @abstractmethod
+
     def logger(self) -> Logger:
+        pass
+
+    @abstractmethod
+    def monitor(self) -> Popen[bytes] | None:
+        pass
+
+    @abstractmethod
+    def set_monitor(self, monitor: Popen[bytes] | None) -> None:
         pass
 
     @abstractmethod
@@ -191,11 +217,11 @@ class Context[CP: ContextPath](AbstractContextManager["Context", bool]):
         pass
 
     @abstractmethod
-    def _start(self, command: list[str]) -> Popen[bytes]:
+    def _start_command(self, command: list[str]) -> list[str]:
         pass
 
     def start(self, command: list[str]) -> Popen[bytes]:
-        ret = self._start(command)
+        ret = Popen(self._start_command(command))
         self.procs().append(ret)
         return ret
 
@@ -223,21 +249,22 @@ class Context[CP: ContextPath](AbstractContextManager["Context", bool]):
                 abrt_sent = True
         return duration
             
-    def start_monitor(self, regex: str, graph_file: CP | str = "graph.svg", stdout_file: CP | str = "smaps_profiler.ndjson", check_not_running: bool = True) -> None:
-        if self.monitor:
+    def start_monitor(self, regex: str, graph_file: ContextPath | str = "graph.svg", stdout_file: ContextPath | str = "smaps_profiler.ndjson", check_not_running: bool = True) -> None:
+        if self.monitor():
             self.logger().warning("Experiment.start_monitor() called when Experiment.monitor_tuple was not None. Refusing to do anything.")
             return
         if check_not_running:
             assert_not_running(regex)
         graph = self.path_of(self.to_path_t(graph_file))
         stdout = self.path_of(self.to_path_t(stdout_file))
-        self.monitor = start_monitor(regex, graph, stdout)
+        self.set_monitor(start_monitor(regex, graph, stdout))
 
     def _stop_monitor(self) -> bool:
-        if self.monitor:
-            self.monitor.send_signal(SIGINT)
-            self.monitor.wait()
-            self.monitor = None
+        m = self.monitor()
+        if m:
+            m.send_signal(SIGINT)
+            m.wait()
+            self.set_monitor(None)
             return True
         else:
             return False
@@ -246,7 +273,7 @@ class Context[CP: ContextPath](AbstractContextManager["Context", bool]):
         if not self._stop_monitor():
             self.logger().warning("Experiment.stop_monitor() called when Experiment.monitor_tuple was falsy.")
 
-    def screenshot(self, name: CP | str = "app.png") -> None:
+    def screenshot(self, name: ContextPath | str = "app.png") -> None:
         path = self.path_of(self.to_path_t(name))
         pyautogui.screenshot(path)
 
@@ -278,67 +305,132 @@ class Context[CP: ContextPath](AbstractContextManager["Context", bool]):
             raise TookLongTimeException
         return ret
 
-class ExperimentPath(ContextPath): # oh my god I'm so sick of getting paths wrong, types ftw
-    pass
-    
-class Experiment(Context[ExperimentPath]):
-    def __init__(self, name: str, output_dir: Path, mem_limit: int | None, info_file: ExperimentPath | None = ExperimentPath("info.yaml"), log_file: ExperimentPath = ExperimentPath("log"), exit_timeouts: ExitTimeouts = ExitTimeouts(20, 30, 40)):
+class Experiment(Context):
+    def __init__(self, name: str, output_dir: Path, exit_timeouts: ExitTimeouts = ExitTimeouts(20, 30, 40)):
         pyautogui.useImageNotFoundException(True)
         self.output_dir = output_dir
-        os.makedirs(self.output_dir)
-        if not info_file:
-            info_file = ExperimentPath("info.yaml") 
-        info_path = self.path_of(info_file)
+        self.m_name = name
+        self.m_logger = None
+        os.makedirs(self.dir())
+        info_path = self.path_of(ContextPath("info.yaml"))
         gen_info(info_path)
         self.info_path = info_path
-        self.monitor: Popen[bytes] | None = None
-        self.mem_limit = mem_limit
+        self.m_monitor: Popen[bytes] | None = None
         self.m_exit_timeouts = exit_timeouts
         self.procs_list: list[Popen[bytes]] = []
-        self.name = name
-        self.logging_file = self.path_of(log_file)
-        self.m_logger = logging.getLogger(self.name)
-        # inspired by default format for Rust env_logger
-        formatter = logging.Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s")
-        # https://stackoverflow.com/a/11582124/3882118
-        fh = logging.FileHandler(self.logging_file)
-        sh = logging.StreamHandler()
-        fh.setFormatter(formatter)
-        sh.setFormatter(formatter)
-        self.m_logger.addHandler(fh)
-        self.m_logger.addHandler(sh)
-        self.m_logger.setLevel(logging.INFO)
-
-    def path_of(self, path: ExperimentPath) -> Path:
-        return path.into_path(self)
-
+        
     @staticmethod
     def parse_sysargs() -> "Experiment":
         ns = parse_sysargs()
         return Experiment(ns.output_directory, ns.memory_limit, ns.info_filename)
 
-    # use this if you want Experiment context manager to automatically close app on exit or error
-    def _start(self, command: list[str]) -> Popen[bytes]:
-        p = start_with_mem(command, self.mem_limit)
-        self.procs_list.append(p)
-        return p
-
-    @classmethod
-    def path_t(cls) -> type[ExperimentPath]:
-        return ExperimentPath
+    """
+    use this if you want Experiment context manager to automatically close app on exit or error
+    """
+    def _start_command(self, command: list[str]) -> list[str]:
+        return command
 
     def exit_timeouts(self) -> ExitTimeouts:
         return self.m_exit_timeouts
 
-    def parent(self) -> Context[ContextPath] | None:
+    def parent(self) -> Context | None:
         return None
 
     def rel_base_dir(self) -> Path:
         return self.output_dir
 
     def logger(self) -> Logger:
+        if self.m_logger is None:
+            self.m_logger = get_logger(self.m_name, self.path_of(ContextPath("log.txt")))
         return self.m_logger
+
+    def monitor(self) -> Popen[bytes] | None:
+        return self.m_monitor
+
+    def set_monitor(self, monitor: Popen[bytes] | None) -> None:
+        self.m_monitor = monitor
 
     def procs(self) -> list[Popen[bytes]]:
         return self.procs_list
 
+    def name(self) -> str:
+        return self.m_name
+
+class Memory(Context):
+    def __init__(self, parent: Context, idx: int, mem: int | None):
+        self.m_parent = parent
+        self.mem = mem
+        self.base_dir = Path(f"{idx:02d}_{self.m_name}")
+        self.m_name = human_mem_str(mem)
+        self.m_logger = None
+        os.makedirs(self.dir())
+        self.m_procs: list[Popen[bytes]] = []
+        self.m_monitor = None
+
+    def name(self) -> str:
+        return self.m_name
+
+    def exit_timeouts(self) -> ExitTimeouts:
+        return self.m_parent.exit_timeouts()
+
+    def parent(self) -> Context | None:
+        return self.m_parent
+
+    def rel_base_dir(self) -> Path:
+        return self.base_dir
+
+    def logger(self) -> Logger:
+        if self.m_logger is None:
+            self.m_logger = get_logger(f"{self.m_parent.name()}_{self.m_name}", self.path_of(ContextPath("log.txt")))
+        return self.m_logger
+
+    def monitor(self) -> Popen[bytes] | None:
+        return self.m_monitor
+
+    def set_monitor(self, monitor: Popen[bytes] | None) -> None:
+        self.m_monitor = monitor
+
+    def procs(self) -> list[Popen[bytes]]:
+        return self.m_procs
+
+    def _start_command(self, command: list[str]) -> list[str]:
+        return command_with_mem(command, self.mem)
+
+class Sub(Context):
+    def __init__(self, parent: Context, name: str):
+        self.m_parent = parent
+        self.base_dir = Path(self.m_name)
+        self.m_name = name
+        self.m_logger = None
+        os.makedirs(self.dir())
+        self.m_procs: list[Popen[bytes]] = []
+        self.m_monitor = None
+
+    def name(self) -> str:
+        return self.m_name
+
+    def exit_timeouts(self) -> ExitTimeouts:
+        return self.m_parent.exit_timeouts()
+
+    def parent(self) -> Context | None:
+        return self.m_parent
+
+    def rel_base_dir(self) -> Path:
+        return self.base_dir
+
+    def logger(self) -> Logger:
+        if self.m_logger is None:
+            self.m_logger = get_logger(f"{self.m_parent.name()}_{self.m_name}", self.path_of(ContextPath("log.txt")))
+        return self.m_logger
+
+    def monitor(self) -> Popen[bytes] | None:
+        return self.m_monitor
+
+    def set_monitor(self, monitor: Popen[bytes] | None) -> None:
+        self.m_monitor = monitor
+
+    def procs(self) -> list[Popen[bytes]]:
+        return self.m_procs
+
+    def _start_command(self, command: list[str]) -> list[str]:
+        return command
