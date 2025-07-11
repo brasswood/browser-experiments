@@ -104,7 +104,7 @@ def load_page(browser: Literal["chromium", "firefox"], url: str) -> None:
         point = locate_center(get_reload_button("chromium"), timeout=10)
         assert point is not None
         (x, y) = point
-        pyautogui.tripleClick(x=x+300, y=y)
+        pyautogui.tripleClick(x=x+700, y=y)
     elif browser == "firefox":
         point = locate_center(get_reload_button("firefox"), timeout=10)
         (x, y) = point
