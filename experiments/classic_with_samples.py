@@ -14,10 +14,12 @@
 
 
 from logging import Logger
+import os
 from pathlib import Path
+import shutil
 from subprocess import Popen
 from typing import Literal
-from .lib import Context, ContextPath, ExitTimeouts, Experiment, Memory, Sub
+from .lib import Context, ContextPath, ExitTimeouts, Experiment, Memory, Sub, TookLongTimeException
 import sys
 from . import ALL_MEM
 
@@ -91,12 +93,18 @@ def parse_sysargs() -> Path:
         sys.exit(1)
     return Path(sys.argv[1])
 
+def took_long_time_warning(ex: Context) -> None:
+    ex.logger().warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
+
 def main() -> None:
     with Experiment("classic-with-samples", parse_sysargs()) as ex:
+        all_graphs_dir = ContextPath("graphs_all")
+        os.makedirs(ex.path_of(all_graphs_dir))
         for params in ALL_MEM:
             with Sub(ex, params.name()) as sub_ex:
                 for (i, mem) in enumerate(params.mems):
                     with Memory(sub_ex, i, mem) as mem_ex:
+                        took_long_time = False
                         if "web" in params.name():
                             browser = "chromium"
                         elif "firefox" in params.name():
@@ -104,14 +112,33 @@ def main() -> None:
                         else:
                             for j in range(10):
                                 with Sub(mem_ex, f"{j:02d}") as last_ex:
-                                    params.module.run_experiment(last_ex)
+                                    try:
+                                        params.module.run_experiment(last_ex)
+                                    except TookLongTimeException:
+                                        took_long_time_warning(last_ex)
+                                        took_long_time = True
+                                    except Exception:
+                                        pass
+                                    path_2 = f"{sub_ex.name()}_{last_ex.name()}_{mem_ex.name()}"
+                                    shutil.copy2(last_ex.path_of(ContextPath("graph.svg")), ex.path_of(all_graphs_dir)/path_2)
+                            if took_long_time:
+                                break
                             continue
                         with FunkyContext(mem_ex, 10, browser) as funky_ex:
                             assert isinstance(funky_ex, FunkyContext)
                             for j in range(10):
-                                funky_ex.set_count(j)
-                                params.module.run_experiment(funky_ex)
-                                funky_ex.stop_monitor()
-
+                                try:
+                                    funky_ex.set_count(j)
+                                    params.module.run_experiment(funky_ex)
+                                    funky_ex.stop_monitor()
+                                except TookLongTimeException:
+                                    took_long_time_warning(funky_ex)
+                                    took_long_time = True
+                                except Exception:
+                                    pass
+                                path_2 = f"{sub_ex.name()}_{funky_ex.name()}_{mem_ex.name()}"
+                                shutil.copy2(funky_ex.path_of(ContextPath("graph.svg")), ex.path_of(all_graphs_dir)/path_2)
+                            if took_long_time:
+                                break
 if __name__ == "__main__":
     main()
