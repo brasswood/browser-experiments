@@ -15,10 +15,10 @@
 import time
 import pyautogui
 from pyautogui import ImageNotFoundException
-from ..lib import Experiment
+from ..lib import Experiment, Context
 from .. import lib
 
-def run_experiment(ex: Experiment) -> None:
+def run_experiment(ex: Context) -> None:
     with ex:
         button1 = lib.get_resource("1.png")
         ex.start_monitor("dino")
@@ -41,4 +41,5 @@ def run_experiment(ex: Experiment) -> None:
         ex.screenshot()
 
 def main() -> None:
-    run_experiment(Experiment.parse_sysargs())
+    with Experiment.parse_sysargs() as ex:
+        run_experiment(ex)

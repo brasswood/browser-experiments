@@ -15,12 +15,11 @@
 import time
 import pyautogui
 from pyautogui import ImageNotFoundException
-from ..lib import Experiment
+from ..lib import Experiment, Context, load_page
 from .. import lib
 
-def run_experiment(ex: Experiment) -> None:
+def run_experiment(ex: Context) -> None:
     with ex:
-        button1 = lib.get_resource("1.png")
         button2 = lib.get_resource("2.png")
         ex.start_monitor("firefox")
         ex.start(["firefox", "-P", "Experiments", "about:blank"])
@@ -29,12 +28,7 @@ def run_experiment(ex: Experiment) -> None:
         ex.screenshot("blank.png")
         # navigate to mov.im/chat
         # unfortunately, the type stub incorrectly says that minSearchTime is a required argument for the following line
-        point = pyautogui.locateCenterOnScreen(str(button1), minSearchTime=0, confidence=0.9)
-        assert point is not None
-        (x, y) = point
-        pyautogui.tripleClick(x=x+500, y=y)
-        pyautogui.write('mov.im/chat')
-        pyautogui.press('enter')
+        load_page("firefox", 'mov.im/chat')
         # start a timer
         start = time.time()
         # try to click Open Hardware Chat, waiting up to 10 seconds for the page to load
@@ -53,4 +47,5 @@ def run_experiment(ex: Experiment) -> None:
         ex.screenshot("app.png")
 
 def main() -> None:
-    run_experiment(Experiment.parse_sysargs())
+    with Experiment.parse_sysargs() as ex:
+        run_experiment(ex)

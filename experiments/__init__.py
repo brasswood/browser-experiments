@@ -19,14 +19,14 @@ from . import calendar_web, calendar_firefox, calendar_native, chat_web, chat_fi
 import sys
 import os
 import shutil
-from .lib import human_mem_str, Experiment, TookLongTimeException
+from .lib import ContextPath, Memory, Sub, Experiment, TookLongTimeException, decay
 
 class ExperimentParams:
     def __init__(self, module: ModuleType, mems: List[int | None] = [None]) -> None:
         self.module = module
         self.mems = mems
     def name(self) -> str:
-        return self.module.__name__
+        return self.module.__name__.split('.')[-1]
 
 ALL_CHROME: list[ExperimentParams] = [
     ExperimentParams(calendar_web),
@@ -57,14 +57,6 @@ KILOBYTE: int = 1000
 MEGABYTE: int = KILOBYTE * 1000
 GIGABYTE: int = MEGABYTE * 1000
 
-def decay(start: int, rate: float, n: int) -> list[int | None]:
-    ret: list[int | None] = [None]
-    mem = start
-    for _ in range(n+1): # want to include None, start, all the way up to start * rate**n
-        ret.append(mem)
-        mem = int(mem*rate)
-    return ret
-
 RATE: float = 0.7
 N: int = 10
 
@@ -90,20 +82,22 @@ def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
     output_dir = parse_sysargs()
     graphs_dir = output_dir.joinpath("graphs_all")
     os.makedirs(graphs_dir)
-    for params in experiments:
-        name_dir = output_dir.joinpath(params.name())
-        os.makedirs(name_dir)
-        for (i, mem) in enumerate(params.mems):
-            mem_dir = name_dir.joinpath("{:02d}_{}".format(i, human_mem_str(mem)))
-            os.makedirs(mem_dir)
-            for j in range(10):
-                fullpath = mem_dir.joinpath(str(j))
-                ex = Experiment(params.name(), fullpath, mem, None)
-                try:
-                    params.module.run_experiment(ex)
-                    path_2 = "{}_{}_{:02d}_{}".format(params.name(), j, i, human_mem_str(mem))
-                    shutil.copy(fullpath.joinpath("graph.svg"), graphs_dir.joinpath(path_2 + ".svg"))
-                except TookLongTimeException:
-                    ex.m_logger.warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
-                except Exception:
-                    pass
+    with Experiment("classic", output_dir) as ex:
+        for params in experiments:
+            with Sub(ex, params.name()) as sub_ex:
+                for (i, mem) in enumerate(params.mems):
+                    took_long_time = False
+                    with Memory(sub_ex, i, mem) as mem_ex:
+                        for j in range(10):
+                            with Sub(mem_ex, f"{j:02d}") as sample_ex:
+                                try:
+                                    params.module.run_experiment(sample_ex)
+                                    path_2 = f"{sub_ex.name()}_{sample_ex.name()}_{mem_ex.name()}"
+                                    shutil.copy(sample_ex.path_of(ContextPath("graph.svg")), graphs_dir.joinpath(path_2 + ".svg"))
+                                except TookLongTimeException:
+                                    ex.logger().warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
+                                    took_long_time = True
+                                except Exception:
+                                    pass
+                    if took_long_time:
+                        continue

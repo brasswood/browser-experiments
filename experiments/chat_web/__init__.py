@@ -15,41 +15,34 @@
 import time
 import pyautogui
 from pyautogui import ImageNotFoundException
-from ..lib import Experiment
+from ..lib import Experiment, Context, load_page
 from .. import lib
 
-def run_experiment(ex: Experiment) -> None:
-    with ex:
-        button1 = lib.get_resource("1.png")
-        button2 = lib.get_resource("2.png")
-        google = lib.get_resource("google.png")
-        ex.start_monitor("chromium")
-        ex.start(["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", "about:blank"])
-        try:
-            pyautogui.locateOnScreen(str(google))
-            raise Exception("error: set startup page to about:blank")
-        except ImageNotFoundException:
-            pass
-        # wait 30 on the blank page
-        time.sleep(30)
-        ex.screenshot("blank.png")
-        # navigate to mov.im/chat
-        # unfortunately, the type stub incorrectly says that minSearchTime is a required argument for the following line
-        point = pyautogui.locateCenterOnScreen(str(button1), minSearchTime=0, confidence=0.9)
-        assert point is not None
-        (x, y) = point
-        pyautogui.tripleClick(x=x+100, y=y)
-        pyautogui.write('mov.im/chat')
-        pyautogui.press('enter')
-        start = time.time()
-        # try to click Open Hardware Chat, waiting up to 10 seconds for the page to load
-        point = pyautogui.locateCenterOnScreen(str(button2), minSearchTime=10, confidence=0.9)
-        assert point is not None
-        (x, y) = point
-        pyautogui.click(x, y)
-        # sit for the remaining time out of 30 seconds since navigating to chat
-        time.sleep(30 - (time.time() - start))
-        ex.screenshot("app.png")
+def run_experiment(ex: Context) -> None:
+    button2 = lib.get_resource("2.png")
+    google = lib.get_resource("google.png")
+    ex.start_monitor("chromium")
+    ex.start(["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", "about:blank"])
+    try:
+        pyautogui.locateOnScreen(str(google))
+        raise Exception("error: set startup page to about:blank")
+    except ImageNotFoundException:
+        pass
+    # wait 30 on the blank page
+    time.sleep(30)
+    ex.screenshot("blank.png")
+    # navigate to mov.im/chat
+    load_page("chromium", 'mov.im/chat')
+    start = time.time()
+    # try to click Open Hardware Chat, waiting up to 10 seconds for the page to load
+    point = pyautogui.locateCenterOnScreen(str(button2), minSearchTime=10, confidence=0.9)
+    assert point is not None
+    (x, y) = point
+    pyautogui.click(x, y)
+    # sit for the remaining time out of 30 seconds since navigating to chat
+    time.sleep(30 - (time.time() - start))
+    ex.screenshot("app.png")
 
 def main() -> None:
-    run_experiment(Experiment.parse_sysargs())
+    with Experiment.parse_sysargs() as ex:
+        run_experiment(ex)

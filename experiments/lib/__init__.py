@@ -95,6 +95,9 @@ def reload_page(browser: Literal["chromium", "firefox"]) -> None:
     point = locate_center(get_reload_button(browser))
     assert point is not None
     pyautogui.click(*point)
+    # reload button stuck highlighted in chromium.
+    pyautogui.moveRel(10, 10)
+    pyautogui.moveRel(-10, -10)
 
 def load_page(browser: Literal["chromium", "firefox"], url: str) -> None:
     if browser == "chromium":
@@ -126,13 +129,20 @@ def human_mem_str(mem: int | None) -> str:
     else:
         return naturalsize(mem, True).replace(" ", "")
 
+def decay(start: int, rate: float, n: int) -> list[int | None]:
+    ret: list[int | None] = [None]
+    mem = start
+    for _ in range(n+1): # want to include None, start, all the way up to start * rate**n
+        ret.append(mem)
+        mem = int(mem*rate)
+    return ret
+
 def command_with_mem(command: list[str], mem: int | None) -> list[str]:
     return ["systemd-run", "--user", "--scope", "-p", "MemoryHigh={}".format(mem_str(mem))] + command
 
 def parse_sysargs() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument('output-directory')
-    parser.add_argument('-i', '--info-filename', type=str, default=None)
     parser.add_argument('-m', '--memory-limit', type=int, default=None)
     return parser.parse_args(sys.argv)
 
@@ -287,7 +297,7 @@ class Context(AbstractContextManager["Context", bool]):
 
     def stop_monitor(self) -> None:
         if not self._stop_monitor():
-            self.logger().warning("Experiment.stop_monitor() called when Experiment.monitor_tuple was falsy.")
+            self.logger().warning("Experiment.stop_monitor() called when Experiment.monitor was falsy.")
 
     def screenshot(self, name: ContextPath | str = "app.png") -> None:
         path = self.path_of(self.to_context_path(name))
@@ -346,7 +356,7 @@ class Experiment(Context):
     @staticmethod
     def parse_sysargs() -> "Experiment":
         ns = parse_sysargs()
-        return Experiment(ns.output_directory, ns.memory_limit, ns.info_filename)
+        return Experiment("temporary name should be caller module", ns.output_directory)
 
     """
     use this if you want Experiment context manager to automatically close app on exit or error

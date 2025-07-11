@@ -14,9 +14,9 @@
 
 #!/usr/bin/python3
 import time
-from .lib import Experiment
+from .lib import Experiment, Context
 
-def run_experiment(ex: Experiment) -> None:
+def run_experiment(ex: Context) -> None:
     with ex:
         # Run experiment
         ex.start_monitor("evolution")
@@ -25,7 +25,8 @@ def run_experiment(ex: Experiment) -> None:
         ex.screenshot()
 
 def main() -> None:
-    run_experiment(Experiment.parse_sysargs())
+    with Experiment.parse_sysargs() as ex:
+        run_experiment(ex)
 
 if __name__ == "__main__":
     main()

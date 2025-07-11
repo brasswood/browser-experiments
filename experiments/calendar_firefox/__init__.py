@@ -13,28 +13,20 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import time
-import pyautogui
-from ..lib import Experiment
-from .. import lib
+from ..lib import Context, Experiment, load_page
 
-def run_experiment(ex: Experiment) -> None:
-    with ex:
-        button1 = lib.get_resource("1.png")
-        ex.start_monitor("firefox")
-        ex.start(["firefox", "-P", "Experiments", "about:blank"])
-        # wait 30 on the blank page
-        time.sleep(30)
-        ex.screenshot("blank.png")
-        # navigate to google calendar
-        point = pyautogui.locateCenterOnScreen(str(button1), minSearchTime=0, confidence=0.9)
-        assert point is not None
-        (x, y) = point
-        pyautogui.tripleClick(x=x+500, y=y)
-        pyautogui.write('calendar.google.com')
-        pyautogui.press('enter')
-        # wait another 30
-        time.sleep(30)
-        ex.screenshot("app.png")
+def run_experiment(ex: Context) -> None:
+    ex.start_monitor("firefox")
+    ex.start(["firefox", "-P", "Experiments", "about:blank"])
+    # wait 30 on the blank page
+    time.sleep(30)
+    ex.screenshot("blank.png")
+    # navigate to google calendar
+    load_page("firefox", "calendar.google.com")
+    # wait another 30
+    time.sleep(30)
+    ex.screenshot("app.png")
 
 def main() -> None:
-    run_experiment(Experiment.parse_sysargs())
+    with Experiment.parse_sysargs() as ex:
+        run_experiment(ex)
