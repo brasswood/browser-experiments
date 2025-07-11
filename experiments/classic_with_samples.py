@@ -111,6 +111,7 @@ def main() -> None:
                             for j in range(10):
                                 funky_ex.set_count(j)
                                 params.module.run_experiment(funky_ex)
+                                funky_ex.stop_monitor()
 
 if __name__ == "__main__":
     main()
