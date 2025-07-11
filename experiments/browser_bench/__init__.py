@@ -78,4 +78,4 @@ def main() -> None:
                             f.write(str((end - start) * 1000))
                         reload_page(params.name)
                     except Exception as e:
-                        ex.logger.exception(e)
+                        ex.logger().exception(e)

@@ -19,7 +19,7 @@ from . import calendar_web, calendar_firefox, calendar_native, chat_web, chat_fi
 import sys
 import os
 import shutil
-from .lib import human_mem_str, Experiment, PleaseNoMoreException
+from .lib import human_mem_str, Experiment, TookLongTimeException
 
 class ExperimentParams:
     def __init__(self, module: ModuleType, mems: List[int | None] = [None]) -> None:
@@ -103,7 +103,7 @@ def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
                     params.module.run_experiment(ex)
                     path_2 = "{}_{}_{:02d}_{}".format(params.name(), j, i, human_mem_str(mem))
                     shutil.copy(fullpath.joinpath("graph.svg"), graphs_dir.joinpath(path_2 + ".svg"))
-                except PleaseNoMoreException:
-                    ex.logger.warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
+                except TookLongTimeException:
+                    ex.m_logger.warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
                 except Exception:
                     pass
