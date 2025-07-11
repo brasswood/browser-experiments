@@ -92,8 +92,8 @@ def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
                             with Sub(mem_ex, f"{j:02d}") as sample_ex:
                                 try:
                                     params.module.run_experiment(sample_ex)
-                                    path_2 = f"{sub_ex.name()}_{sample_ex.name()}_{mem_ex.name()}"
-                                    shutil.copy(sample_ex.path_of(ContextPath("graph.svg")), graphs_dir.joinpath(path_2 + ".svg"))
+                                    path_2 = f"{sub_ex.name()}_{mem_ex.name()}_{sample_ex.name()}.svg"
+                                    shutil.copy(sample_ex.path_of(ContextPath("graph.svg")), graphs_dir.joinpath(path_2))
                                 except TookLongTimeException:
                                     ex.logger().warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
                                     took_long_time = True

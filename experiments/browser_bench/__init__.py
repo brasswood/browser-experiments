@@ -12,10 +12,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import os
+import shutil
 import time
 
 import pyperclip
-from ..lib import ContextPath, Experiment, Memory, Sub, assert_not_running, get_resource, locate_center, reload_page
+from ..lib import ContextPath, Experiment, Memory, Sub, TookLongTimeException, assert_not_running, get_resource, locate_center, reload_page
 import sys
 from pathlib import Path
 
@@ -39,6 +41,8 @@ def main() -> None:
         sys.exit(1)
 
     with Experiment("browser_bench", Path(sys.argv[1])) as ex:
+        graphs_all = ex.path_of(ContextPath("graphs_all"))
+        os.makedirs(graphs_all)
         for params in EXPERIMENTS:
             assert params.name == "chromium" or params.name == "firefox"
             start_button = get_resource(f"start_button_{params.name}.png")
@@ -49,24 +53,37 @@ def main() -> None:
                     assert_not_running(params.name)
                     with Memory(sub, i, mem) as mem_ex:
                         mem_ex.start(params.command)
+                        took_long_time = False
                         for j in range(2):
                             with Sub(mem_ex, f"{j:02d}") as sample_ex:
-                                point = locate_center(start_button, timeout=10)
+                                try:
+                                    point = locate_center(start_button, timeout=10)
 
-                                sample_ex.start_monitor(params.name, check_not_running=False)
+                                    sample_ex.start_monitor(params.name, check_not_running=False)
 
-                                start = time.time()
-                                pyautogui.click(*point)
-                                point = locate_center(details_button, timeout=10*60)
-                                end = time.time()
+                                    start = time.time()
+                                    pyautogui.click(*point)
+                                    point = locate_center(details_button, timeout=10*60)
+                                    end = time.time()
 
-                                sample_ex.stop_monitor()
+                                    sample_ex.stop_monitor()
 
-                                pyautogui.click(*point)
-                                point = locate_center(copy_json_button, timeout=10)
-                                pyautogui.click(*point)
-                                with sample_ex.open(ContextPath("benchmark.json"), 'w') as f:
-                                    f.write(pyperclip.paste())
-                                with sample_ex.open(ContextPath("time_ms"), 'w') as f:
-                                    f.write(str((end - start) * 1000))
+                                    pyautogui.click(*point)
+                                    point = locate_center(copy_json_button, timeout=10)
+                                    pyautogui.click(*point)
+                                    with sample_ex.open(ContextPath("benchmark.json"), 'w') as f:
+                                        f.write(pyperclip.paste())
+                                    with sample_ex.open(ContextPath("time_ms"), 'w') as f:
+                                        f.write(str((end - start) * 1000))
+                                except TookLongTimeException:
+                                    sample_ex.logger().warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
+                                    took_long_time = True
+                                except Exception:
+                                    pass
+                                shutil.copy2(sample_ex.path_of(ContextPath("graph.svg")), graphs_all.joinpath(f"{sub.name()}_{mem_ex.name()}_{sample_ex.name()}.svg"))
+                            try:
                                 reload_page(params.name)
+                            except Exception:
+                                break
+                        if took_long_time:
+                            break

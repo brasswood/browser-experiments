@@ -120,7 +120,7 @@ def main() -> None:
                                     except Exception:
                                         pass
                                     last_ex.stop_monitor()
-                                    path_2 = f"{sub_ex.name()}_{last_ex.name()}_{mem_ex.name()}.svg"
+                                    path_2 = f"{sub_ex.name()}_{mem_ex.name()}_{last_ex.name()}.svg"
                                     shutil.copy2(last_ex.path_of(ContextPath("graph.svg")), ex.path_of(all_graphs_dir)/path_2)
                             if took_long_time:
                                 break
