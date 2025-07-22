@@ -30,6 +30,9 @@ URL = "https://browserbench.org/Speedometer3.1/"
 
 RATE = 0.7
 N = 10
+# N = 0
+SAMPLES = 10
+# SAMPLES = 1
 
 EXPERIMENTS = [
     ExperimentParams("chromium", ["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", URL], lib.decay(910 * MEGABYTE, RATE, N)),
@@ -51,7 +54,7 @@ def main() -> None:
             try:
                 lib.assert_not_running(params.name)
                 with mem_ctx.start_app(params.command):
-                    for j in range(10):
+                    for j in range(SAMPLES):
                         sample_ctx = mem_ctx.get_child_with_sample(j)
                         try:
                             point = lib.locate_center(start_button, timeout=10)

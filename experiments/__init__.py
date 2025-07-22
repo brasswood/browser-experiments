@@ -49,8 +49,11 @@ ALL: list[ExperimentParams] = [
 
 
 
-RATE: float = 0.7
-N: int = 10
+RATE = 0.7
+N = 10
+# N = 0
+SAMPLES = 10
+# SAMPLES = 1
 
 ALL_MEM: list[ExperimentParams] = [
     ExperimentParams(calendar_web, lib.decay(620 * MEGABYTE, RATE, N)),
@@ -64,7 +67,7 @@ ALL_MEM: list[ExperimentParams] = [
     ExperimentParams(mail_native, lib.decay(310 * MEGABYTE, RATE, N)),
 ]
 
-def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
+def run_all(experiments: list[ExperimentParams]=ALL) -> None:
     top_ctx = Context.from_module("classic")
     graphs_dir = top_ctx.joinpath("graphs_all")
     lib.ensure_dir_exists(graphs_dir)
@@ -73,7 +76,7 @@ def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
         for (i, mem) in enumerate(params.mems):
             took_long_time = False
             mem_ctx = ex_ctx.get_child_with_mem(i, mem)
-            for j in range(10):
+            for j in range(SAMPLES):
                 sample_ctx = mem_ctx.get_child_with_sample(j)
                 try:
                     params.module.run_experiment(sample_ctx)
