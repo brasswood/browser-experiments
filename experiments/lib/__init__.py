@@ -329,20 +329,17 @@ class Context:
         logger = get_logger(name, output_dir)
         return Context(name, output_dir, logger, None)
 
-    def _get_child_name(self, name: str) -> str:
-        return f"{self.name}_{name}"
-    
     def _get_child_logger(self, name: str) -> Logger:
         logger_name = f"{self.logger.name}.{name}"
         path = self.base_path.joinpath(name)
         return get_logger(logger_name, path)
  
     def get_child(self, name: str) -> "Context":
-       return Context(self._get_child_name(name), self.base_path.joinpath(name), self._get_child_logger(name), self.mem)
+       return Context(name, self.base_path.joinpath(name), self._get_child_logger(name), self.mem)
     
     def get_child_with_mem(self, i: int, mem: int | None) -> "Context":
         name = f"{i:02d}_{human_mem_str(mem)}"
-        return Context(self._get_child_name(name), self.base_path.joinpath(name), self._get_child_logger(name), mem)
+        return Context(name, self.base_path.joinpath(name), self._get_child_logger(name), mem)
 
     def get_child_with_sample(self, i: int) -> "Context":
         return Context.get_child(self, f"{i:02d}")

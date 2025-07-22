@@ -75,7 +75,7 @@ def main() -> None:
                             sample_ctx.logger.exception(e)
                             continue
                         finally:
-                            shutil.copy2(sample_ctx.joinpath("graph.svg"), graphs_all.joinpath(f"{sample_ctx.name}.svg"))
+                            shutil.copy2(sample_ctx.joinpath("graph.svg"), graphs_all.joinpath(f"{browser_ctx.name}_{mem_ctx.name}_{sample_ctx.name}.svg"))
             except TookLongTimeException:
                 mem_ctx.logger.warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
                 break
