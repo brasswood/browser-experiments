@@ -311,7 +311,7 @@ class Context:
         self.mem = mem
 
     @classmethod
-    def from_module_with_mem(cls, module_name: str) -> "Context":
+    def from_module_with_mem(cls, name: str) -> "Context":
         # parse system arguments
         args = parse_sysargs_with_mem()
 
@@ -319,8 +319,8 @@ class Context:
         create_experiment_files(args.output_dir)
 
         # get logger
-        logger = get_logger(module_name, args.output_dir)
-        return Context(module_name, args.output_dir, logger, args.mem)
+        logger = get_logger(name, args.output_dir)
+        return Context(name, args.output_dir, logger, args.mem)
 
     @classmethod
     def from_module(cls, name: str) -> "Context":
