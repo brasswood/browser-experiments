@@ -280,7 +280,7 @@ class App(AbstractContextManager["App", None]):
             raise TookLongTimeException
 
 class Monitor(AbstractContextManager["Monitor", None]):
-    def __init__(self, regex: str, base_path: Path, logger: Logger, graph_out: RelPath = RelPath("graph.svg"), stdout_to_file: RelPath = RelPath("smaps_profiler.ndjson"), check_if_running: bool = True):
+    def __init__(self, regex: str, base_path: Path, logger: Logger, graph_out: RelPath | str = "graph.svg", stdout_to_file: RelPath | str = "smaps_profiler.ndjson", check_if_running: bool = True):
         self.base_path = base_path
         self.logger = logger
         graph = base_path.joinpath(graph_out)
@@ -347,7 +347,7 @@ class Context:
     def start_app(self, command: list[str], exit_timeouts: ExitTimeouts = ExitTimeouts(20, 30, 40)) -> App:
         return App(command, self.base_path, self.logger, self.mem, exit_timeouts)
 
-    def monitor(self, regex: str, graph_out: RelPath = RelPath("graph.svg"), stdout_to_file: RelPath = RelPath("smaps_profiler.ndjson"), check_if_running: bool = True):
+    def monitor(self, regex: str, graph_out: RelPath | str = "graph.svg", stdout_to_file: RelPath | str = "smaps_profiler.ndjson", check_if_running: bool = True):
         return Monitor(regex, self.base_path, self.logger, graph_out, stdout_to_file, check_if_running)
     
     def screenshot(self, path: RelPath | str):
