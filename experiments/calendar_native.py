@@ -14,19 +14,16 @@
 
 #!/usr/bin/python3
 import time
-from .lib import Experiment, Context
+from .lib import Context
 
-def run_experiment(ex: Context) -> None:
-    with ex:
+def run_experiment(ctx: Context) -> None:
+    with ctx.monitor("gnome-calendar"), ctx.start_app(["gnome-calendar"]):
         # Run experiment
-        ex.start_monitor("gnome-calendar")
-        ex.start(["gnome-calendar"])
         time.sleep(30)
-        ex.screenshot()
+        ctx.screenshot("app.png")
 
 def main() -> None:
-    with Experiment.parse_sysargs() as ex:
-        run_experiment(ex)
+        run_experiment(Context.from_module_with_mem(__name__))
 
 if __name__ == "__main__":
     main()

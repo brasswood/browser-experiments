@@ -15,34 +15,32 @@
 import time
 import pyautogui
 from pyautogui import ImageNotFoundException
-from ..lib import Experiment, Context
+from ..lib import Context
 from .. import lib
 
-def run_experiment(ex: Context) -> None:
-    button2 = lib.get_resource("2.png")
+def run_experiment(ctx: Context) -> None:
+    button2 = lib.get_resource("open_hw_chat_button.png")
     google = lib.get_resource("google.png")
-    ex.start_monitor("chromium")
-    ex.start(["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", "about:blank"])
-    try:
-        pyautogui.locateOnScreen(str(google))
-        raise Exception("error: set startup page to about:blank")
-    except ImageNotFoundException:
-        pass
-    # wait 30 on the blank page
-    time.sleep(30)
-    ex.screenshot("blank.png")
-    # navigate to mov.im/chat
-    ex.load_page("chromium", 'mov.im/chat')
-    start = time.time()
-    # try to click Open Hardware Chat, waiting up to 10 seconds for the page to load
-    point = pyautogui.locateCenterOnScreen(str(button2), minSearchTime=10, confidence=0.9)
-    assert point is not None
-    (x, y) = point
-    pyautogui.click(x, y)
-    # sit for the remaining time out of 30 seconds since navigating to chat
-    time.sleep(30 - (time.time() - start))
-    ex.screenshot("app.png")
+    with ctx.monitor("chromium"), ctx.start_app(["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", "about:blank"]):
+        try:
+            pyautogui.locateOnScreen(str(google))
+            raise Exception("error: set startup page to about:blank")
+        except ImageNotFoundException:
+            pass
+        # wait 30 on the blank page
+        time.sleep(30)
+        ctx.screenshot("blank.png")
+        # navigate to mov.im/chat
+        lib.load_page("chromium", 'mov.im/chat')
+        start = time.time()
+        # try to click Open Hardware Chat, waiting up to 10 seconds for the page to load
+        point = pyautogui.locateCenterOnScreen(str(button2), minSearchTime=10, confidence=0.9)
+        assert point is not None
+        (x, y) = point
+        pyautogui.click(x, y)
+        # sit for the remaining time out of 30 seconds since navigating to chat
+        time.sleep(30 - (time.time() - start))
+        ctx.screenshot("app.png")
 
 def main() -> None:
-    with Experiment.parse_sysargs() as ex:
-        run_experiment(ex)
+    run_experiment(Context.from_module_with_mem(__name__))

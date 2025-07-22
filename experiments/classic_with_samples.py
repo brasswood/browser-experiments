@@ -111,20 +111,22 @@ def main() -> None:
                             browser = "firefox"
                         else:
                             for j in range(10):
-                                with Sub(mem_ex, f"{j:02d}") as last_ex:
-                                    try:
-                                        params.module.run_experiment(last_ex)
-                                    except TookLongTimeException:
-                                        took_long_time_warning(last_ex)
-                                        took_long_time = True
-                                    except Exception:
-                                        pass
-                                    last_ex.stop_monitor()
-                                    path_2 = f"{sub_ex.name()}_{mem_ex.name()}_{last_ex.name()}.svg"
-                                    shutil.copy2(last_ex.path_of(ContextPath("graph.svg")), ex.path_of(all_graphs_dir)/path_2)
+                                try:
+                                    with Sub(mem_ex, f"{j:02d}") as last_ex:
+                                        try:
+                                            params.module.run_experiment(last_ex)
+                                        except Exception as e:
+                                            last_ex.logger().exception(e)
+                                        last_ex.stop_monitor()
+                                        path_2 = f"{sub_ex.name()}_{mem_ex.name()}_{last_ex.name()}.svg"
+                                        shutil.copy2(last_ex.path_of(ContextPath("graph.svg")), ex.path_of(all_graphs_dir)/path_2)
+                                except TookLongTimeException:
+                                    took_long_time_warning(last_ex)
+                                    took_long_time = True
                             if took_long_time:
                                 break
-                            continue
+                                continue
+
                         with FunkyContext(mem_ex, 10, browser) as funky_ex:
                             assert isinstance(funky_ex, FunkyContext)
                             for j in range(10):

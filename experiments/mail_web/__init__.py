@@ -15,27 +15,25 @@
 import time
 import pyautogui
 from pyautogui import ImageNotFoundException
-from ..lib import Experiment, Context
+from ..lib import Context
 from .. import lib
 
-def run_experiment(ex: Context) -> None:
+def run_experiment(ctx: Context) -> None:
     google = lib.get_resource("google.png")
-    ex.start_monitor("chromium")
-    ex.start(["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", "about:blank"])
-    try:
-        pyautogui.locateOnScreen(str(google))
-        raise Exception("error: set startup page to about:blank")
-    except ImageNotFoundException:
-        pass
-    # wait 30 on the blank page
-    time.sleep(30)
-    ex.screenshot("blank.png")
-    # navigate to outlook
-    ex.load_page("chromium", 'outlook.office365.com')
-    # wait another 30
-    time.sleep(30)
-    ex.screenshot("app.png")
+    with ctx.monitor("chromium"), ctx.start_app(["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", "about:blank"]):
+        try:
+            pyautogui.locateOnScreen(str(google))
+            raise Exception("error: set startup page to about:blank")
+        except ImageNotFoundException:
+            pass
+        # wait 30 on the blank page
+        time.sleep(30)
+        ctx.screenshot("blank.png")
+        # navigate to outlook
+        lib.load_page("chromium", 'outlook.office365.com')
+        # wait another 30
+        time.sleep(30)
+        ctx.screenshot("app.png")
 
 def main() -> None:
-    with Experiment.parse_sysargs() as ex:
-        run_experiment(ex)
+    run_experiment(Context.from_module_with_mem(__name__))

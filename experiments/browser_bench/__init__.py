@@ -12,15 +12,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import os
 import shutil
 import time
-
 import pyperclip
-from ..lib import MEGABYTE, ContextPath, Experiment, Memory, Sub, TookLongTimeException, assert_not_running, get_resource, locate_center, reload_page, decay
-import sys
-from pathlib import Path
-
+from ..lib import Context, MEGABYTE, TookLongTimeException, RelPath
+from .. import lib
 import pyautogui
 
 class ExperimentParams:
@@ -35,59 +31,50 @@ RATE = 0.7
 N = 10
 
 EXPERIMENTS = [
-    ExperimentParams("chromium", ["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", URL], decay(910 * MEGABYTE, RATE, N)),
-    ExperimentParams("firefox", ["firefox", "-P", "Experiments", URL], decay(1380 * MEGABYTE, RATE, N)),
+    ExperimentParams("chromium", ["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", URL], lib.decay(910 * MEGABYTE, RATE, N)),
+    ExperimentParams("firefox", ["firefox", "-P", "Experiments", URL], lib.decay(1380 * MEGABYTE, RATE, N)),
 ]
 
 def main() -> None:
-    if len(sys.argv) != 2:
-        print("Must specify output directory")
-        sys.exit(1)
-
-    with Experiment("browser_bench", Path(sys.argv[1])) as ex:
-        graphs_all = ex.path_of(ContextPath("graphs_all"))
-        os.makedirs(graphs_all)
-        for params in EXPERIMENTS:
-            assert params.name == "chromium" or params.name == "firefox"
-            start_button = get_resource(f"start_button_{params.name}.png")
-            details_button = get_resource(f"details_button_{params.name}.png")
-            copy_json_button = get_resource(f"copy_json_button_{params.name}.png")
-            with Sub(ex, params.name) as sub:
-                for (i, mem) in enumerate(params.mems):
-                    assert_not_running(params.name)
-                    with Memory(sub, i, mem) as mem_ex:
-                        mem_ex.start(params.command)
-                        took_long_time = False
-                        for j in range(10):
-                            with Sub(mem_ex, f"{j:02d}") as sample_ex:
-                                try:
-                                    point = locate_center(start_button, timeout=10)
-
-                                    sample_ex.start_monitor(params.name, check_not_running=False)
-
-                                    start = time.time()
-                                    pyautogui.click(*point)
-                                    point = locate_center(details_button, timeout=10*60)
-                                    end = time.time()
-
-                                    sample_ex.stop_monitor()
-
-                                    pyautogui.click(*point)
-                                    point = locate_center(copy_json_button, timeout=10)
-                                    pyautogui.click(*point)
-                                    with sample_ex.open(ContextPath("benchmark.json"), 'w') as f:
-                                        f.write(pyperclip.paste())
-                                    with sample_ex.open(ContextPath("time_ms"), 'w') as f:
-                                        f.write(str((end - start) * 1000))
-                                except TookLongTimeException:
-                                    sample_ex.logger().warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
-                                    took_long_time = True
-                                except Exception:
-                                    pass
-                                shutil.copy2(sample_ex.path_of(ContextPath("graph.svg")), graphs_all.joinpath(f"{sub.name()}_{mem_ex.name()}_{sample_ex.name()}.svg"))
-                            try:
-                                reload_page(params.name)
-                            except Exception:
-                                break
-                        if took_long_time:
-                            break
+    top_ctx = Context.from_module(__name__)
+    graphs_all = top_ctx.joinpath("graphs_all")
+    lib.ensure_dir_exists(graphs_all)
+    for params in EXPERIMENTS:
+        assert params.name == "chromium" or params.name == "firefox"
+        start_button = lib.get_resource(f"start_button_{params.name}.png")
+        details_button = lib.get_resource(f"details_button_{params.name}.png")
+        copy_json_button = lib.get_resource(f"copy_json_button_{params.name}.png")
+        browser_ctx = top_ctx.get_child(params.name)
+        for (i, mem) in enumerate(params.mems):
+            lib.assert_not_running(params.name)
+            mem_ctx = browser_ctx.get_child_with_mem(i, mem)
+            with mem_ctx.start_app(params.command):
+                took_long_time = False
+                for j in range(10):
+                    sample_ctx = mem_ctx.get_child_with_sample(j)
+                    try:
+                        point = lib.locate_center(start_button, timeout=10)
+                        with sample_ctx.monitor(params.name, check_if_running=False):
+                            start = time.time()
+                            pyautogui.click(*point)
+                            point = lib.locate_center(details_button, timeout=10*60)
+                            end = time.time()
+                        pyautogui.click(*point)
+                        point = lib.locate_center(copy_json_button, timeout=10)
+                        pyautogui.click(*point)
+                        with sample_ctx.open(RelPath("benchmark.json"), 'w') as f:
+                            f.write(pyperclip.paste())
+                        with sample_ctx.open(RelPath("time_ms"), 'w') as f:
+                            f.write(str((end - start) * 1000))
+                    except TookLongTimeException:
+                        sample_ctx.logger.warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
+                        took_long_time = True
+                    except Exception:
+                        pass
+                        shutil.copy2(sample_ctx.joinpath("graph.svg"), graphs_all.joinpath(f"{sample_ctx.name}.svg"))
+                    try:
+                        lib.reload_page(params.name)
+                    except Exception:
+                        break
+                if took_long_time:
+                    break

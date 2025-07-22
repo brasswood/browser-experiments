@@ -12,8 +12,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-from abc import abstractmethod
-import copy
 import logging
 from pathlib import Path
 import importlib.resources as res
@@ -23,7 +21,7 @@ from typing import IO, Any, Literal, Self
 import subprocess
 from subprocess import Popen
 from signal import SIGINT, SIGABRT
-from types import TracebackType
+from types import ModuleType, TracebackType
 from contextlib import AbstractContextManager
 import sys
 import os
@@ -34,6 +32,10 @@ import time
 from pathspec import PathSpec
 import pyautogui
 
+pyautogui.useImageNotFoundException(True)
+
+class RelPath(Path):
+    pass
 
 def project_root() -> Path:
     return Path(__file__).parent.parent.parent
@@ -42,7 +44,7 @@ def project_root() -> Path:
 def copy_project(output_dir: Path) -> None:
     os.makedirs(output_dir)
     root = project_root()
-    with open(root/".gitignore", 'r') as f:
+    with open2(root/".gitignore", 'r') as f:
         spec = PathSpec.from_lines("gitwildmatch", f)
     for match in spec.match_tree_entries(root, negate=True):
         if match.is_dir():
@@ -64,18 +66,23 @@ def assert_not_running(regex: str) -> None:
         return
     else:
         raise Exception(f"'pgrep {regex}' failed")
-
-def get_resource(filename: str) -> Path:
+    
+def get_module(stack_distance: int = 0) -> ModuleType:
     # https://stackoverflow.com/a/1095621/3882118
-    frame = inspect.stack()[1]
+    frame = inspect.stack()[1 + stack_distance]
     module = inspect.getmodule(frame[0])
     assert(module is not None)
+    return module
+
+def get_resource(filename: str) -> Path:
+    module = get_module(1)
     return res.as_file(res.files(module).joinpath(filename)).__enter__()
 
 GEN_INFO = get_resource("gen-info.sh")
 
 def gen_info(out: Path) -> None:
     subprocess.run(["bash", str(GEN_INFO), str(out)])
+
 
 chromium_reload_button = None
 firefox_reload_button = None
@@ -112,12 +119,14 @@ def load_page(browser: Literal["chromium", "firefox"], url: str) -> None:
     pyautogui.write(url)
     pyautogui.press('enter')
 
-def start_monitor(regex: str, graph_out: Path, stdout_to_file: Path) -> Popen[bytes]:
-    with open(stdout_to_file, 'w') as f:
+def start_monitor(regex: str, graph_out: Path, stdout_to_file: Path, check_if_running: bool = True) -> Popen[bytes]:
+    if check_if_running:
+        assert_not_running(regex)
+    with open2(stdout_to_file, 'w') as f:
         popen = subprocess.Popen(["smaps-profiler", "-c", "-j", "-g", str(graph_out), "-m", regex], stdout=f)
         return popen
 
-def mem_str(mem: int | None) -> str:
+def systemd_mem_str(mem: int | None) -> str:
     if mem is None:
         return "infinity"
     else:
@@ -145,14 +154,26 @@ def decay(start: int, rate: float, n: int) -> list[int | None]:
         mem = int(mem*rate)
     return ret
 
-def command_with_mem(command: list[str], mem: int | None) -> list[str]:
-    return ["systemd-run", "--user", "--scope", "-p", "MemoryHigh={}".format(mem_str(mem))] + command
+def start_with_mem(command: list[str], mem: int | None) -> Popen[bytes]:
+    return Popen(["systemd-run", "--user", "--scope", "-p", "MemoryHigh={}".format(systemd_mem_str(mem))] + command)
 
-def parse_sysargs() -> argparse.Namespace:
+class Args:
+    def __init__(self, output_dir: Path, mem: int | None):
+        self.output_dir = output_dir
+        self.mem = mem
+
+def parse_sysargs_with_mem() -> Args:
     parser = argparse.ArgumentParser()
     parser.add_argument('output-directory')
     parser.add_argument('-m', '--memory-limit', type=int, default=None)
-    return parser.parse_args(sys.argv)
+    ns = parser.parse_args(sys.argv)
+    return Args(ns.output_directory, ns.memory_limit)
+
+def parse_sysargs() -> Path:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('output-directory')
+    ns = parser.parse_args(sys.argv)
+    return Path(ns.output_directory)
 
 def format_exception(e: BaseException) -> str:
     return "{}: {}".format(type(e).__name__, e)
@@ -162,12 +183,16 @@ def locate_center(image: str | Path, timeout: float = 0, confidence: float = 0.9
     assert point is not None
     return point
 
-def get_logger(name: str, file: Path) -> Logger:
+def ensure_dir_exists(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+
+def get_logger(name: str, base: Path, file: RelPath = RelPath("log.txt")) -> Logger:
+    ensure_dir_exists(base)
     logger = logging.getLogger(name)
     # inspired by default format for Rust env_logger
     formatter = logging.Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s")
     # https://stackoverflow.com/a/11582124/3882118
-    fh = logging.FileHandler(file)
+    fh = logging.FileHandler(base.joinpath(file))
     sh = logging.StreamHandler()
     fh.setFormatter(formatter)
     sh.setFormatter(formatter)
@@ -176,309 +201,151 @@ def get_logger(name: str, file: Path) -> Logger:
     logger.setLevel(logging.INFO)
     return logger
 
+def open2(path: Path, mode: str) -> IO[Any]:
+        ensure_dir_exists(path.parent)
+        return open(path, mode)
+
+def create_experiment_files(base_path: Path):
+    info_path = base_path.joinpath("info.yaml")
+    gen_info(info_path)
+    with open2(base_path.joinpath("sys_argv"), 'w') as f:
+        f.write(" ".join(sys.argv))
+    # ChatGPT helped
+    cmdline = open("/proc/self/cmdline", 'r').read().split('\0')
+    cmdline = " ".join([c for c in cmdline])
+    with open2(base_path.joinpath("cmdline"), 'w') as f:
+        f.write(f"{os.getcwd()}$ ")
+        f.write(cmdline)
+    copy_project(base_path.joinpath("src"))
+
 class ExitTimeouts:
     def __init__(self, warn: float, term: float, abrt: float):
         self.warn = warn
         self.term = term
         self.abrt = abrt
 
-class ContextPath:
-    def __init__(self, *pathsegments: str):
-        self._inner = Path(*pathsegments)
-    
-    def joinpath(self: Self, *pathsegments: str | Path) -> Self:
-        ret = copy.deepcopy(self)
-        ret._inner = ret._inner.joinpath(*pathsegments)
-        return ret
+class App(AbstractContextManager["App", None]):
+    def __init__(self, command: list[str], base_path: Path, logger: Logger, mem: int | None, exit_timeouts: ExitTimeouts = ExitTimeouts(20, 30, 40)):
+        self.proc = start_with_mem(command, mem)
+        self.base_path = base_path
+        self.logger = logger
+        self.exit_timeouts = exit_timeouts
 
-    def into_path(self: Self, context: "Context") -> Path:
-        return context.dir().joinpath(self._inner)
+    def __enter__(self) -> Self:
+        return self
 
-class Context(AbstractContextManager["Context", bool]):
-    @classmethod
-    def to_context_path(cls, path: ContextPath | str) -> ContextPath:
-        if isinstance(path, str):
-            return ContextPath(path)
-        else:
-            return path
-
-    def path_of(self, path: ContextPath) -> Path:
-        return path.into_path(self)
-
-    @abstractmethod
-    def name(self) -> str:
-        pass
-
-    def open(self, path: ContextPath, mode: str) -> IO[Any]:
-        p = self.path_of(path)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        return open(p, mode)
-
-    @abstractmethod
-    def exit_timeouts(self) -> ExitTimeouts:
-        pass
-
-    @abstractmethod
-    def parent(self) -> "Context | None":
-        pass
-
-    @abstractmethod
-    def rel_base_dir(self) -> Path:
-        pass
-
-    def dir(self) -> Path:
-        parent = self.parent()
-        if parent is None:
-            return self.rel_base_dir()
-        else:
-            return parent.dir().joinpath(self.rel_base_dir())
-
-    @abstractmethod
-
-    def logger(self) -> Logger:
-        pass
-
-    @abstractmethod
-    def monitor(self) -> Popen[bytes] | None:
-        pass
-
-    @abstractmethod
-    def set_monitor(self, monitor: Popen[bytes] | None) -> None:
-        pass
-
-    @abstractmethod
-    def procs(self) -> list[Popen[bytes]]:
-        pass
-
-    @abstractmethod
-    def _start_command(self, command: list[str]) -> list[str]:
-        pass
-
-    def start(self, command: list[str]) -> Popen[bytes]:
-        ret = Popen(self._start_command(command))
-        self.procs().append(ret)
-        return ret
-
-    def stop(self, app: Popen[bytes], term_timeout: float | None = 30.0, abrt_timeout: float | None = 40.0) -> float:
-        if app.poll() is not None:
+    def stop(self) -> float:
+        if self.proc.poll() is not None:
             return 0
-        self.logger().info("sending SIGTERM")
-        app.terminate()
+        self.logger.info("sending SIGTERM")
+        self.proc.terminate()
         start = time.time()
         duration = 0.0
         abrt_sent = False
         while True:
             duration = time.time() - start
-            if app.poll() is not None:
+            if self.proc.poll() is not None:
                 break
-            elif (abrt_timeout is not None) and duration > abrt_timeout:
-                self.screenshot("error_abort_timeout.png")
-                self.logger().warning("sending SIGKILL")
-                app.kill()
+            elif duration > self.exit_timeouts.abrt:
+                pyautogui.screenshot(self.base_path.joinpath("error_abort_timeout.png"))
+                self.logger.warning("sending SIGKILL")
+                self.proc.kill()
                 break
-            elif (term_timeout is not None) and duration > term_timeout and not abrt_sent:
-                self.screenshot("error_terminate_timeout.png")
-                self.logger().warning("sending SIGABRT")
-                app.send_signal(SIGABRT)
+            elif duration > self.exit_timeouts.term and not abrt_sent:
+                pyautogui.screenshot(self.base_path.joinpath("error_terminate_timeout.png"))
+                self.logger.warning("sending SIGABRT")
+                self.proc.send_signal(SIGABRT)
                 abrt_sent = True
         return duration
-            
-    def start_monitor(self, regex: str, graph_file: ContextPath | str = "graph.svg", stdout_file: ContextPath | str = "smaps_profiler.ndjson", check_not_running: bool = True) -> None:
-        if self.monitor():
-            self.logger().warning("Experiment.start_monitor() called when Experiment.monitor_tuple was not None. Refusing to do anything.")
-            return
-        if check_not_running:
-            assert_not_running(regex)
-        graph = self.path_of(self.to_context_path(graph_file))
-        stdout = self.path_of(self.to_context_path(stdout_file))
-        self.set_monitor(start_monitor(regex, graph, stdout))
-
-    def _stop_monitor(self) -> bool:
-        m = self.monitor()
-        if m:
-            m.send_signal(SIGINT)
-            m.wait()
-            self.set_monitor(None)
-            return True
-        else:
-            return False
-
-    def stop_monitor(self) -> None:
-        if not self._stop_monitor():
-            self.logger().warning("Experiment.stop_monitor() called when Experiment.monitor was falsy.")
-
-    def screenshot(self, name: ContextPath | str = "app.png") -> None:
-        path = self.path_of(self.to_context_path(name))
-        pyautogui.screenshot(path)
     
-    def reload_page(self, browser: Literal["chromium", "firefox"]) -> None:
-        reload_page(browser)
-
-    def load_page(self, browser: Literal["chromium", "firefox"], url: str) -> None:
-        load_page(browser, url)
-
-    def __exit__(self, exc_type: type[BaseException] | None, exc_value: BaseException | None, traceback: TracebackType | None) -> bool:
-        if exc_value is None:
-            ret = True
-        elif exc_type == KeyboardInterrupt:
-            self.logger().info("keyboard-interrupted")
-            ret = False
-        else:
-            self.screenshot("error_exception_raised.png")
-            if any([ proc.poll() is not None for proc in self.procs() ]):
-                # some process terminated, assume out of memory,
-                # which is expected.
-                self.logger().warning("a process was found to be terminated, assuming out of memory")
-                ret = True
-            else:
-                # all processes are still running, not out of memory,
-                # so something's wrong with the script.
-                self.logger().exception(exc_value)
-                ret = False
+    def __exit__(self, exc_type: type[BaseException] | None, exc_value: BaseException | None, traceback: TracebackType | None) -> None:
         took_long_time = False
-        for proc in self.procs():
-            timeouts = self.exit_timeouts()
-            if self.stop(proc, timeouts.term, timeouts.abrt) > timeouts.warn:
-                took_long_time = True
-        self._stop_monitor()
+        timeouts = self.exit_timeouts
+        if self.stop() > timeouts.warn:
+            took_long_time = True
         if took_long_time:
             raise TookLongTimeException
-        return ret
 
-class Experiment(Context):
-    def __init__(self, name: str, output_dir: Path, exit_timeouts: ExitTimeouts = ExitTimeouts(20, 30, 40)):
-        pyautogui.useImageNotFoundException(True)
-        self.output_dir = output_dir
-        self.m_name = name
-        self.m_logger = None
-        os.makedirs(self.dir())
-        info_path = self.path_of(ContextPath("info.yaml"))
-        gen_info(info_path)
-        with self.open(ContextPath("sys_argv"), 'w') as f:
-            f.write(" ".join(sys.argv))
-        # ChatGPT helped
-        cmdline = open(f"/proc/self/cmdline", 'r').read().split('\0')
-        cmdline = " ".join([c for c in cmdline])
-        with self.open(ContextPath("cmdline"), 'w') as f:
-            f.write(f"{os.getcwd()}$ ")
-            f.write(cmdline)
-        copy_project(self.path_of(ContextPath("src")))
-        self.m_monitor: Popen[bytes] | None = None
-        self.m_exit_timeouts = exit_timeouts
-        self.procs_list: list[Popen[bytes]] = []
-        
-    @staticmethod
-    def parse_sysargs() -> "Experiment":
-        ns = parse_sysargs()
-        return Experiment("temporary name should be caller module", ns.output_directory)
+class Monitor(AbstractContextManager["Monitor", None]):
+    def __init__(self, regex: str, base_path: Path, logger: Logger, graph_out: RelPath = RelPath("graph.svg"), stdout_to_file: RelPath = RelPath("smaps_profiler.ndjson"), check_if_running: bool = True):
+        self.base_path = base_path
+        self.logger = logger
+        graph = base_path.joinpath(graph_out)
+        stdout = base_path.joinpath(stdout_to_file)
+        self.proc = start_monitor(regex, graph, stdout, check_if_running)
 
+    def __enter__(self):
+        return self
+
+    def stop_monitor(self):
+        self.proc.send_signal(SIGINT)
+        self.proc.wait()
+
+    def __exit__(self, exc_type: type[BaseException] | None, exc_value: BaseException | None, traceback: TracebackType | None) -> None:
+        self.stop_monitor()
+
+class Context:
     """
-    use this if you want Experiment context manager to automatically close app on exit or error
+    the purpose of this class is to hold a base path, a logger, and a memory amount.
+    based on that info it provides convenience methods for starting apps (so that they
+    start with the right memory and save their output to the right directory) and creating
+    subdirectories (and subloggers).
     """
-    def _start_command(self, command: list[str]) -> list[str]:
-        return command
-
-    def exit_timeouts(self) -> ExitTimeouts:
-        return self.m_exit_timeouts
-
-    def parent(self) -> Context | None:
-        return None
-
-    def rel_base_dir(self) -> Path:
-        return self.output_dir
-
-    def logger(self) -> Logger:
-        if self.m_logger is None:
-            self.m_logger = get_logger(self.m_name, self.path_of(ContextPath("log.txt")))
-        return self.m_logger
-
-    def monitor(self) -> Popen[bytes] | None:
-        return self.m_monitor
-
-    def set_monitor(self, monitor: Popen[bytes] | None) -> None:
-        self.m_monitor = monitor
-
-    def procs(self) -> list[Popen[bytes]]:
-        return self.procs_list
-
-    def name(self) -> str:
-        return self.m_name
-
-class Memory(Context):
-    def __init__(self, parent: Context, idx: int, mem: int | None):
-        self.m_parent = parent
+    def __init__(self, name: str, base_path: Path, logger: Logger, mem: int | None):
+        self.name = name
+        self.base_path = base_path
+        self.logger = logger
         self.mem = mem
-        self.m_name = f"{idx:02d}_{human_mem_str(mem)}"
-        self.base_dir = Path(self.m_name)
-        self.m_logger = None
-        os.makedirs(self.dir())
-        self.m_procs: list[Popen[bytes]] = []
-        self.m_monitor = None
 
-    def name(self) -> str:
-        return self.m_name
+    @classmethod
+    def from_module_with_mem(cls, module_name: str) -> "Context":
+        # parse system arguments
+        args = parse_sysargs_with_mem()
 
-    def exit_timeouts(self) -> ExitTimeouts:
-        return self.m_parent.exit_timeouts()
+        # a top-level experiment directory
+        create_experiment_files(args.output_dir)
 
-    def parent(self) -> Context | None:
-        return self.m_parent
+        # get logger
+        logger = get_logger(module_name, args.output_dir)
+        return Context(module_name, args.output_dir, logger, args.mem)
 
-    def rel_base_dir(self) -> Path:
-        return self.base_dir
+    @classmethod
+    def from_module(cls, module_name: str) -> "Context":
+        output_dir = parse_sysargs()
+        create_experiment_files(output_dir)
+        logger = get_logger(module_name, output_dir)
+        return Context(module_name, output_dir, logger, None)
 
-    def logger(self) -> Logger:
-        if self.m_logger is None:
-            self.m_logger = get_logger(f"{self.m_parent.name()}_{self.m_name}", self.path_of(ContextPath("log.txt")))
-        return self.m_logger
+    def _get_child_name(self, name: str) -> str:
+        return f"{self.name}_{name}"
+    
+    def _get_child_logger(self, name: str) -> Logger:
+        logger_name = f"{self.logger.name}.{name}"
+        path = self.base_path.joinpath(name)
+        return get_logger(logger_name, path)
+ 
+    def get_child(self, name: str) -> "Context":
+       return Context(self._get_child_name(name), self.base_path.joinpath(name), self._get_child_logger(name), self.mem)
+    
+    def get_child_with_mem(self, i: int, mem: int | None) -> "Context":
+        name = f"{i:02d}_{human_mem_str(mem)}"
+        return Context(self._get_child_name(name), self.base_path.joinpath(name), self._get_child_logger(name), mem)
 
-    def monitor(self) -> Popen[bytes] | None:
-        return self.m_monitor
+    def get_child_with_sample(self, i: int) -> "Context":
+        return Context.get_child(self, f"{i:02d}")
 
-    def set_monitor(self, monitor: Popen[bytes] | None) -> None:
-        self.m_monitor = monitor
+    def start_app(self, command: list[str], exit_timeouts: ExitTimeouts = ExitTimeouts(20, 30, 40)) -> App:
+        return App(command, self.base_path, self.logger, self.mem, exit_timeouts)
 
-    def procs(self) -> list[Popen[bytes]]:
-        return self.m_procs
+    def monitor(self, regex: str, graph_out: RelPath = RelPath("graph.svg"), stdout_to_file: RelPath = RelPath("smaps_profiler.ndjson"), check_if_running: bool = True):
+        return Monitor(regex, self.base_path, self.logger, graph_out, stdout_to_file, check_if_running)
+    
+    def screenshot(self, path: RelPath | str):
+        pyautogui.screenshot(self.base_path.joinpath(path))
 
-    def _start_command(self, command: list[str]) -> list[str]:
-        return command_with_mem(command, self.mem)
+    def joinpath(self, path: RelPath | str) -> Path:
+        return self.base_path.joinpath(path)
 
-class Sub(Context):
-    def __init__(self, parent: Context, name: str):
-        self.m_parent = parent
-        self.m_name = name
-        self.base_dir = Path(self.m_name)
-        self.m_logger = None
-        os.makedirs(self.dir())
-        self.m_procs: list[Popen[bytes]] = []
-        self.m_monitor = None
+    def open(self, path: RelPath | str, mode: str) -> IO[Any]:
+        return open2(self.joinpath(path), mode)
 
-    def name(self) -> str:
-        return self.m_name
-
-    def exit_timeouts(self) -> ExitTimeouts:
-        return self.m_parent.exit_timeouts()
-
-    def parent(self) -> Context | None:
-        return self.m_parent
-
-    def rel_base_dir(self) -> Path:
-        return self.base_dir
-
-    def logger(self) -> Logger:
-        if self.m_logger is None:
-            self.m_logger = get_logger(f"{self.m_parent.name()}_{self.m_name}", self.path_of(ContextPath("log.txt")))
-        return self.m_logger
-
-    def monitor(self) -> Popen[bytes] | None:
-        return self.m_monitor
-
-    def set_monitor(self, monitor: Popen[bytes] | None) -> None:
-        self.m_monitor = monitor
-
-    def procs(self) -> list[Popen[bytes]]:
-        return self.m_procs
-
-    def _start_command(self, command: list[str]) -> list[str]:
-        return command

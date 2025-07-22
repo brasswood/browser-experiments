@@ -13,20 +13,19 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import time
-from ..lib import Context, Experiment
+from ..lib import Context
+from .. import lib
 
-def run_experiment(ex: Context) -> None:
-    ex.start_monitor("firefox")
-    ex.start(["firefox", "-P", "Experiments", "about:blank"])
-    # wait 30 on the blank page
-    time.sleep(30)
-    ex.screenshot("blank.png")
-    # navigate to google calendar
-    ex.load_page("firefox", "calendar.google.com")
-    # wait another 30
-    time.sleep(30)
-    ex.screenshot("app.png")
+def run_experiment(ctx: Context) -> None:
+    with ctx.monitor("firefox"), ctx.start_app(["firefox", "-P", "Experiments", "about:blank"]):
+        # wait 30 on the blank page
+        time.sleep(30)
+        ctx.screenshot("blank.png")
+        # navigate to google calendar
+        lib.load_page("firefox", "calendar.google.com")
+        # wait another 30
+        time.sleep(30)
+        ctx.screenshot("app.png")
 
 def main() -> None:
-    with Experiment.parse_sysargs() as ex:
-        run_experiment(ex)
+    run_experiment(Context.from_module_with_mem(__name__))

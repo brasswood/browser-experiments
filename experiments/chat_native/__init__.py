@@ -15,14 +15,12 @@
 import time
 import pyautogui
 from pyautogui import ImageNotFoundException
-from ..lib import Experiment, Context
+from ..lib import Context
 from .. import lib
 
-def run_experiment(ex: Context) -> None:
-    with ex:
-        button1 = lib.get_resource("1.png")
-        ex.start_monitor("dino")
-        ex.start(["dino"])
+def run_experiment(ctx: Context) -> None:
+    button1 = lib.get_resource("1.png")
+    with ctx.monitor("dino"), ctx.start_app(["dino"]):
         # start a timer
         start = time.time()
         # try to click Open Hardware Chat, waiting up to 10 seconds for the app to load
@@ -38,8 +36,7 @@ def run_experiment(ex: Context) -> None:
                     raise
         # sit for the remaining time out of 30 seconds since navigating to chat
         time.sleep(30 - (time.time() - start))
-        ex.screenshot()
+        ctx.screenshot("app.png")
 
 def main() -> None:
-    with Experiment.parse_sysargs() as ex:
-        run_experiment(ex)
+    run_experiment(Context.from_module_with_mem(__name__))
