@@ -25,3 +25,6 @@ browser-bench = "experiments:browser_bench:main"
 
 [tool.mypy]
 strict = true
+
+[tool.pyright]
+exclude = [ "out/" ]
