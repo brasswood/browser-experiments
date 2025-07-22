@@ -162,17 +162,27 @@ class Args:
         self.output_dir = output_dir
         self.mem = mem
 
+# ChatGPT goated
+def get_prog():
+    main_module = sys.modules["__main__"]
+    package = getattr(main_module, "__package__", None)
+    if package:
+        return f"python -m {package}"
+    else:
+        return sys.argv[0]
+
+
 def parse_sysargs_with_mem() -> Args:
-    parser = argparse.ArgumentParser()
-    parser.add_argument('output-directory')
+    parser = argparse.ArgumentParser(prog=get_prog())
+    parser.add_argument('output_directory', metavar="output-directory")
     parser.add_argument('-m', '--memory-limit', type=int, default=None)
-    ns = parser.parse_args(sys.argv)
+    ns = parser.parse_args()
     return Args(ns.output_directory, ns.memory_limit)
 
 def parse_sysargs() -> Path:
-    parser = argparse.ArgumentParser()
-    parser.add_argument('output-directory')
-    ns = parser.parse_args(sys.argv)
+    parser = argparse.ArgumentParser(prog=get_prog())
+    parser.add_argument('output_directory', metavar='output-directory')
+    ns = parser.parse_args()
     return Path(ns.output_directory)
 
 def format_exception(e: BaseException) -> str:
