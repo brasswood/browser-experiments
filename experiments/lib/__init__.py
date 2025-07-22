@@ -81,6 +81,7 @@ def get_resource(filename: str) -> Path:
 GEN_INFO = get_resource("gen-info.sh")
 
 def gen_info(out: Path) -> None:
+    ensure_dir_exists(out.parent)
     subprocess.run(["bash", str(GEN_INFO), str(out)])
 
 
