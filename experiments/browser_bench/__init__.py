@@ -47,9 +47,9 @@ def main() -> None:
         copy_json_button = lib.get_resource(f"copy_json_button_{params.name}.png")
         browser_ctx = top_ctx.get_child(params.name)
         for (i, mem) in enumerate(params.mems):
-            lib.assert_not_running(params.name)
             mem_ctx = browser_ctx.get_child_with_mem(i, mem)
             try:
+                lib.assert_not_running(params.name)
                 with mem_ctx.start_app(params.command):
                     for j in range(10):
                         sample_ctx = mem_ctx.get_child_with_sample(j)
@@ -65,13 +65,20 @@ def main() -> None:
                             pyautogui.click(*point)
                             with sample_ctx.open("benchmark.json", 'w') as f:
                                 f.write(pyperclip.paste())
-                            with sample_ctx.open("time_ms", 'w') as f:
+                            with sample_ctx.open("python_time_ms", 'w') as f:
                                 f.write(str((end - start) * 1000))
                             lib.reload_page(params.name)
-                        except ImageNotFoundException as e:
+                        except ImageNotFoundException:
                             sample_ctx.logger.error("Image not found, perhaps the application is too unresponsive. Copying graph to graphs_all anyway.", exc_info=True)
-                            shutil.copy2(sample_ctx.joinpath("graph.svg"), graphs_all.joinpath(f"{sample_ctx.name}.svg"))
                             break
+                        except Exception as e:
+                            sample_ctx.logger.exception(e)
+                            continue
+                        finally:
+                            shutil.copy2(sample_ctx.joinpath("graph.svg"), graphs_all.joinpath(f"{sample_ctx.name}.svg"))
             except TookLongTimeException:
                 mem_ctx.logger.warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
                 break
+            except Exception as e:
+                mem_ctx.logger.exception(e)
+                continue
