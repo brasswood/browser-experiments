@@ -206,6 +206,9 @@ def open2(path: Path, mode: str) -> IO[Any]:
         return open(path, mode)
 
 def create_experiment_files(base_path: Path):
+    if base_path.exists():
+        print(f"{base_path} exists; please remove it or use another output directory")
+        sys.exit(1)
     info_path = base_path.joinpath("info.yaml")
     gen_info(info_path)
     with open2(base_path.joinpath("sys_argv"), 'w') as f:
@@ -302,7 +305,7 @@ class Context:
         # parse system arguments
         args = parse_sysargs_with_mem()
 
-        # a top-level experiment directory
+        # top-level experiment directory
         create_experiment_files(args.output_dir)
 
         # get logger
@@ -310,11 +313,11 @@ class Context:
         return Context(module_name, args.output_dir, logger, args.mem)
 
     @classmethod
-    def from_module(cls, module_name: str) -> "Context":
+    def from_module(cls, name: str) -> "Context":
         output_dir = parse_sysargs()
         create_experiment_files(output_dir)
-        logger = get_logger(module_name, output_dir)
-        return Context(module_name, output_dir, logger, None)
+        logger = get_logger(name, output_dir)
+        return Context(name, output_dir, logger, None)
 
     def _get_child_name(self, name: str) -> str:
         return f"{self.name}_{name}"
