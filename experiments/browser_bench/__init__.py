@@ -18,6 +18,7 @@ import pyperclip
 from ..lib import Context, MEGABYTE, TookLongTimeException, RelPath
 from .. import lib
 import pyautogui
+from pyautogui import ImageNotFoundException
 
 class ExperimentParams:
     def __init__(self, name: str, command: list[str], mems: list[int | None]):
@@ -48,33 +49,29 @@ def main() -> None:
         for (i, mem) in enumerate(params.mems):
             lib.assert_not_running(params.name)
             mem_ctx = browser_ctx.get_child_with_mem(i, mem)
-            with mem_ctx.start_app(params.command):
-                took_long_time = False
-                for j in range(10):
-                    sample_ctx = mem_ctx.get_child_with_sample(j)
-                    try:
-                        point = lib.locate_center(start_button, timeout=10)
-                        with sample_ctx.monitor(params.name, check_if_running=False):
-                            start = time.time()
+            try:
+                with mem_ctx.start_app(params.command):
+                    for j in range(10):
+                        sample_ctx = mem_ctx.get_child_with_sample(j)
+                        try:
+                            point = lib.locate_center(start_button, timeout=10)
+                            with sample_ctx.monitor(params.name, check_if_running=False):
+                                start = time.time()
+                                pyautogui.click(*point)
+                                point = lib.locate_center(details_button, timeout=10*60)
+                                end = time.time()
                             pyautogui.click(*point)
-                            point = lib.locate_center(details_button, timeout=10*60)
-                            end = time.time()
-                        pyautogui.click(*point)
-                        point = lib.locate_center(copy_json_button, timeout=10)
-                        pyautogui.click(*point)
-                        with sample_ctx.open(RelPath("benchmark.json"), 'w') as f:
-                            f.write(pyperclip.paste())
-                        with sample_ctx.open(RelPath("time_ms"), 'w') as f:
-                            f.write(str((end - start) * 1000))
-                    except TookLongTimeException:
-                        sample_ctx.logger.warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
-                        took_long_time = True
-                    except Exception:
-                        pass
-                        shutil.copy2(sample_ctx.joinpath("graph.svg"), graphs_all.joinpath(f"{sample_ctx.name}.svg"))
-                    try:
-                        lib.reload_page(params.name)
-                    except Exception:
-                        break
-                if took_long_time:
-                    break
+                            point = lib.locate_center(copy_json_button, timeout=10)
+                            pyautogui.click(*point)
+                            with sample_ctx.open("benchmark.json", 'w') as f:
+                                f.write(pyperclip.paste())
+                            with sample_ctx.open("time_ms", 'w') as f:
+                                f.write(str((end - start) * 1000))
+                            lib.reload_page(params.name)
+                        except ImageNotFoundException as e:
+                            sample_ctx.logger.error("Image not found, perhaps the application is too unresponsive. Copying graph to graphs_all anyway.", exc_info=True)
+                            shutil.copy2(sample_ctx.joinpath("graph.svg"), graphs_all.joinpath(f"{sample_ctx.name}.svg"))
+                            break
+            except TookLongTimeException:
+                mem_ctx.logger.warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
+                break

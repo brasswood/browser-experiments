@@ -14,12 +14,10 @@
 
 from typing import List
 from types import ModuleType
-from pathlib import Path
 from . import calendar_web, calendar_firefox, calendar_native, chat_web, chat_firefox, chat_native, mail_web, mail_firefox, mail_native
-import sys
-import os
 import shutil
-from .lib import MEGABYTE, ContextPath, Memory, Sub, Experiment, TookLongTimeException, decay
+from .lib import MEGABYTE, Context, TookLongTimeException
+from . import lib
 
 class ExperimentParams:
     def __init__(self, module: ModuleType, mems: List[int | None] = [None]) -> None:
@@ -55,43 +53,35 @@ RATE: float = 0.7
 N: int = 10
 
 ALL_MEM: list[ExperimentParams] = [
-    ExperimentParams(calendar_web, decay(620 * MEGABYTE, RATE, N)),
-    ExperimentParams(calendar_firefox, decay(820 * MEGABYTE, RATE, N)),
-    ExperimentParams(calendar_native, decay(130 * MEGABYTE, RATE, N)),
-    ExperimentParams(chat_web, decay(520 * MEGABYTE, RATE, N)),
-    ExperimentParams(chat_firefox, decay(520 * MEGABYTE, RATE, N)),
-    ExperimentParams(chat_native, decay(230 * MEGABYTE, RATE, N)),
-    ExperimentParams(mail_web, decay(870 * MEGABYTE, RATE, N)),
-    ExperimentParams(mail_firefox, decay(980 * MEGABYTE, RATE, N)),
-    ExperimentParams(mail_native, decay(310 * MEGABYTE, RATE, N)),
+    ExperimentParams(calendar_web, lib.decay(620 * MEGABYTE, RATE, N)),
+    ExperimentParams(calendar_firefox, lib.decay(820 * MEGABYTE, RATE, N)),
+    ExperimentParams(calendar_native, lib.decay(130 * MEGABYTE, RATE, N)),
+    ExperimentParams(chat_web, lib.decay(520 * MEGABYTE, RATE, N)),
+    ExperimentParams(chat_firefox, lib.decay(520 * MEGABYTE, RATE, N)),
+    ExperimentParams(chat_native, lib.decay(230 * MEGABYTE, RATE, N)),
+    ExperimentParams(mail_web, lib.decay(870 * MEGABYTE, RATE, N)),
+    ExperimentParams(mail_firefox, lib.decay(980 * MEGABYTE, RATE, N)),
+    ExperimentParams(mail_native, lib.decay(310 * MEGABYTE, RATE, N)),
 ]
 
-def parse_sysargs() -> Path:
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <output_directory>")
-        sys.exit(1)
-    return Path(sys.argv[1])
-
 def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
-    output_dir = parse_sysargs()
-    graphs_dir = output_dir.joinpath("graphs_all")
-    os.makedirs(graphs_dir)
-    with Experiment("classic", output_dir) as ex:
-        for params in experiments:
-            with Sub(ex, params.name()) as sub_ex:
-                for (i, mem) in enumerate(params.mems):
-                    took_long_time = False
-                    with Memory(sub_ex, i, mem) as mem_ex:
-                        for j in range(10):
-                            with Sub(mem_ex, f"{j:02d}") as sample_ex:
-                                try:
-                                    params.module.run_experiment(sample_ex)
-                                    path_2 = f"{sub_ex.name()}_{mem_ex.name()}_{sample_ex.name()}.svg"
-                                    shutil.copy(sample_ex.path_of(ContextPath("graph.svg")), graphs_dir.joinpath(path_2))
-                                except TookLongTimeException:
-                                    ex.logger().warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
-                                    took_long_time = True
-                                except Exception:
-                                    pass
-                    if took_long_time:
-                        continue
+    top_ctx = Context.from_module("classic")
+    graphs_dir = top_ctx.joinpath("graphs_all")
+    lib.ensure_dir_exists(graphs_dir)
+    for params in experiments:
+        ex_ctx = top_ctx.get_child(params.name())
+        for (i, mem) in enumerate(params.mems):
+            took_long_time = False
+            mem_ctx = ex_ctx.get_child_with_mem(i, mem)
+            for j in range(10):
+                sample_ctx = mem_ctx.get_child_with_sample(j)
+                try:
+                    params.module.run_experiment(sample_ctx)
+                    shutil.copy(sample_ctx.joinpath("graph.svg"), graphs_dir.joinpath(sample_ctx.name))
+                except TookLongTimeException:
+                    sample_ctx.logger.warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
+                    took_long_time = True
+                except Exception:
+                    pass
+            if took_long_time:
+                continue
