@@ -240,7 +240,14 @@ class ExitTimeouts:
 
 class App(AbstractContextManager["App", None]):
     def __init__(self, command: list[str], base_path: Path, logger: Logger, mem: int | None, exit_timeouts: ExitTimeouts = ExitTimeouts(20, 30, 40)):
-        self.systemd_proc = Popen(["systemd-run", "--user", "--unit=browser_experiment", "--collect", "--wait", "-p", f"MemoryHigh={systemd_mem_str(mem)}"] + command)
+        self.unit_name = "browser_experiment"
+        """
+        --wait causes systemd-run to block until the service completes. This is useful so that we can just wait() on this process rather than continuously polling the service with `systemctl --user is-active {self.unit_name}`.
+        ExitType=cgroup causes the service to complete only when all child processes of the application complete. https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html#ExitType=
+        --collect "unload[s] the transient service" after it completes, so that it won't appear still in list-units. https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html#ExitType=
+        We need a service rather than a scope here, and the reason is that we want to be able to send SIGTERM to just the main process to exit gracefully, but scopes don't have a main process. If SIGTERM takes too long, we still blast SIGKILL to every process, though.
+        """
+        self.systemd_proc = Popen(["systemd-run", "--user", f"--unit={self.unit_name}", "--collect", "--wait", "-p", "ExitType=cgroup", "-p", f"MemoryHigh={systemd_mem_str(mem)}"] + command)
         self.base_path = base_path
         self.logger = logger
         self.exit_timeouts = exit_timeouts
@@ -249,7 +256,10 @@ class App(AbstractContextManager["App", None]):
         return self
 
     def send_signal(self, signal: int, whom: Literal["main", "all"]):
-        subprocess.run(["systemctl", "--user", "kill", f"--kill-whom={whom}", f"--signal={signal}", "browser_experiment"])
+        """
+        Rather than signalling self.systemd_proc itself, we want to send signals to processes in our transient service via systemctl. This is so that we can send a signal to and wait for every process in the application, not just the main one.
+        """
+        subprocess.run(["systemctl", "--user", "kill", f"--kill-whom={whom}", f"--signal={signal}", self.unit_name])
 
     def terminate(self):
         self.send_signal(SIGTERM, "main")
