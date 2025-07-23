@@ -20,7 +20,7 @@ import shutil
 from typing import IO, Any, Literal, Self
 import subprocess
 from subprocess import Popen
-from signal import SIGINT, SIGABRT
+from signal import SIGINT, SIGTERM, SIGABRT, SIGKILL
 from types import ModuleType, TracebackType
 from contextlib import AbstractContextManager
 import sys
@@ -156,7 +156,7 @@ def decay(start: int, rate: float, n: int) -> list[int | None]:
     return ret
 
 def start_with_mem(command: list[str], mem: int | None) -> Popen[bytes]:
-    return Popen(["systemd-run", "--user", "--scope", "-p", "MemoryHigh={}".format(systemd_mem_str(mem))] + command)
+    return Popen(["systemd-run", "--user", "--scope", "--unit=browser_experiment", "--collect", "-p", "MemoryHigh={}".format(systemd_mem_str(mem))] + command)
 
 class Args:
     def __init__(self, output_dir: Path, mem: int | None):
@@ -240,7 +240,7 @@ class ExitTimeouts:
 
 class App(AbstractContextManager["App", None]):
     def __init__(self, command: list[str], base_path: Path, logger: Logger, mem: int | None, exit_timeouts: ExitTimeouts = ExitTimeouts(20, 30, 40)):
-        self.proc = start_with_mem(command, mem)
+        self.systemd_proc = Popen(["systemd-run", "--user", "--unit=browser_experiment", "--collect", "--wait", "-p", f"MemoryHigh={systemd_mem_str(mem)}"] + command)
         self.base_path = base_path
         self.logger = logger
         self.exit_timeouts = exit_timeouts
@@ -248,27 +248,43 @@ class App(AbstractContextManager["App", None]):
     def __enter__(self) -> Self:
         return self
 
+    def send_signal(self, signal: int, whom: Literal["main", "all"]):
+        subprocess.run(["systemctl", "--user", "kill", f"--kill-whom={whom}", f"--signal={signal}", "browser_experiment"])
+
+    def terminate(self):
+        self.send_signal(SIGTERM, "main")
+    
+    def kill(self):
+        self.send_signal(SIGKILL, "all")
+    
+    def is_running(self) -> bool:
+        return self.systemd_proc.poll() is not None
+
+    def wait(self):
+        self.systemd_proc.wait()
+
     def stop(self) -> float:
-        if self.proc.poll() is not None:
+        if not self.is_running():
             return 0
         abrt_sent = False
         kill_sent = False
         self.logger.info("sending SIGTERM")
-        self.proc.terminate()
+        self.terminate()
         start = time.time()
         while True:
             duration = time.time() - start
-            if self.proc.poll() is not None:
+            if not self.is_running():
+                self.wait()
                 return duration
             elif duration > self.exit_timeouts.abrt and not kill_sent:
                 pyautogui.screenshot(self.base_path.joinpath("error_abort_timeout.png"))
                 self.logger.warning("sending SIGKILL")
-                self.proc.kill()
+                self.kill()
                 kill_sent = True
             elif duration > self.exit_timeouts.term and not abrt_sent:
                 pyautogui.screenshot(self.base_path.joinpath("error_terminate_timeout.png"))
                 self.logger.warning("sending SIGABRT")
-                self.proc.send_signal(SIGABRT)
+                self.send_signal(SIGABRT, "main")
                 abrt_sent = True
     
     def __exit__(self, exc_type: type[BaseException] | None, exc_value: BaseException | None, traceback: TracebackType | None) -> None:
