@@ -31,6 +31,7 @@ from logging import Logger
 import time
 from pathspec import PathSpec
 import pyautogui
+import uuid
 
 pyautogui.useImageNotFoundException(True)
 
@@ -240,7 +241,7 @@ class ExitTimeouts:
 
 class App(AbstractContextManager["App", None]):
     def __init__(self, command: list[str], base_path: Path, logger: Logger, mem: int | None, exit_timeouts: ExitTimeouts = ExitTimeouts(20, 30, 40)):
-        self.unit_name = "browser_experiment"
+        self.unit_name = str(uuid.uuid1())
         """
         --wait causes systemd-run to block until the service completes. This is useful so that we can just wait() on this process rather than continuously polling the service with `systemctl --user is-active {self.unit_name}`.
         ExitType=cgroup causes the service to complete only when all child processes of the application complete. https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html#ExitType=
