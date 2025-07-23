@@ -260,7 +260,8 @@ class App(AbstractContextManager["App", None]):
         """
         Rather than signalling self.systemd_proc itself, we want to send signals to processes in our transient service via systemctl. This is so that we can send a signal to and wait for every process in the application, not just the main one.
         """
-        subprocess.run(["systemctl", "--user", "kill", f"--kill-whom={whom}", f"--signal={signal}", self.unit_name])
+        if self.is_running():
+            subprocess.run(["systemctl", "--user", "kill", f"--kill-whom={whom}", f"--signal={signal}", self.unit_name])
 
     def terminate(self):
         self.send_signal(SIGTERM, "main")
