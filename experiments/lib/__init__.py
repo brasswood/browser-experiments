@@ -251,26 +251,25 @@ class App(AbstractContextManager["App", None]):
     def stop(self) -> float:
         if self.proc.poll() is not None:
             return 0
+        abrt_sent = False
+        kill_sent = False
         self.logger.info("sending SIGTERM")
         self.proc.terminate()
         start = time.time()
-        duration = 0.0
-        abrt_sent = False
         while True:
             duration = time.time() - start
             if self.proc.poll() is not None:
-                break
-            elif duration > self.exit_timeouts.abrt:
+                return duration
+            elif duration > self.exit_timeouts.abrt and not kill_sent:
                 pyautogui.screenshot(self.base_path.joinpath("error_abort_timeout.png"))
                 self.logger.warning("sending SIGKILL")
                 self.proc.kill()
-                break
+                kill_sent = True
             elif duration > self.exit_timeouts.term and not abrt_sent:
                 pyautogui.screenshot(self.base_path.joinpath("error_terminate_timeout.png"))
                 self.logger.warning("sending SIGABRT")
                 self.proc.send_signal(SIGABRT)
                 abrt_sent = True
-        return duration
     
     def __exit__(self, exc_type: type[BaseException] | None, exc_value: BaseException | None, traceback: TracebackType | None) -> None:
         took_long_time = False
