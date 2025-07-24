@@ -56,8 +56,8 @@ def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
                 sample_ctx = mem_ctx.get_child_with_sample(j)
                 try:
                     params.module.run_experiment(sample_ctx)
-                except TookLongTimeException:
-                    sample_ctx.logger.warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
+                except TookLongTimeException as e:
+                    sample_ctx.logger.warning(f"Application took longer than {e.warn_time} seconds to exit. Refusing to reduce memory any more for this workload.")
                     took_long_time = True
                 except Exception as e:
                     sample_ctx.logger.exception(e)

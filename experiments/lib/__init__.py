@@ -54,7 +54,9 @@ def copy_project(output_dir: Path) -> None:
             shutil.copy2(root/match.path, output_dir/match.path)
 
 class TookLongTimeException(Exception):
-    pass
+    def __init__(self, warn_time: float, actual_time: float):
+        self.warn_time = warn_time
+        self.actual_time = actual_time
 
 class AlreadyRunningException(Exception):
     pass
@@ -311,12 +313,10 @@ class App(AbstractContextManager["App", None]):
                 abrt_sent = True
     
     def __exit__(self, exc_type: type[BaseException] | None, exc_value: BaseException | None, traceback: TracebackType | None) -> None:
-        took_long_time = False
         timeouts = self.exit_timeouts
-        if self.stop() > timeouts.warn:
-            took_long_time = True
-        if took_long_time:
-            raise TookLongTimeException
+        time_took = self.stop()
+        if time_took > timeouts.warn:
+            raise TookLongTimeException(timeouts.warn, time_took)
 
 class Monitor(AbstractContextManager["Monitor", None]):
     def __init__(self, regex: str, base_path: Path, logger: Logger, graph_out: RelPath | str = "graph.svg", stdout_to_file: RelPath | str = "smaps_profiler.ndjson", check_if_running: bool = True):
