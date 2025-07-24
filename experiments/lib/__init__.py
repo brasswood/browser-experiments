@@ -125,7 +125,7 @@ def start_monitor(regex: str, graph_out: Path, stdout_to_file: Path, check_if_ru
     if check_if_running:
         assert_not_running(regex)
     with open2(stdout_to_file, 'w') as f:
-        popen = subprocess.Popen(["smaps-profiler", "-c", "-j", "-g", str(graph_out), "-m", regex], stdout=f)
+        popen = subprocess.Popen([project_root() / "smaps-profiler/target/release/smaps-profiler", "-c", "-j", "-g", str(graph_out), "-m", regex], stdout=f)
         return popen
 
 def systemd_mem_str(mem: int | None) -> str:
@@ -224,10 +224,14 @@ def open2(path: Path, mode: str) -> IO[Any]:
         ensure_dir_exists(path.parent)
         return open(path, mode)
 
+def build_smaps_profiler():
+    subprocess.run(["cargo", "build", "--release", "--manifest-path", project_root() / "smaps-profiler" / "Cargo.toml", ])
+
 def create_experiment_files(base_path: Path):
     if base_path.exists():
         print(f"{base_path} exists; please remove it or use another output directory")
         sys.exit(1)
+    build_smaps_profiler()
     info_path = base_path.joinpath("info.yaml")
     gen_info(info_path)
     with open2(base_path.joinpath("sys_argv"), 'w') as f:
