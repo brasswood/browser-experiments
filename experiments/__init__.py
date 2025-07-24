@@ -62,4 +62,4 @@ def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
                 except Exception as e:
                     sample_ctx.logger.exception(e)
             if took_long_time:
-                continue
+                break

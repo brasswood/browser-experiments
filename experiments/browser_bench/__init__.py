@@ -78,10 +78,8 @@ def main() -> None:
                             break
                         except Exception as e:
                             sample_ctx.logger.exception(e)
-                            continue
             except TookLongTimeException:
                 mem_ctx.logger.warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
                 break
             except Exception as e:
                 mem_ctx.logger.exception(e)
-                continue
