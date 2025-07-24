@@ -59,7 +59,7 @@ def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
                 except TookLongTimeException:
                     sample_ctx.logger.warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
                     took_long_time = True
-                except Exception:
-                    pass
+                except Exception as e:
+                    sample_ctx.logger.exception(e)
             if took_long_time:
                 continue
