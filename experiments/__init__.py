@@ -26,29 +26,6 @@ class ExperimentParams:
     def name(self) -> str:
         return self.module.__name__.split('.')[-1]
 
-ALL_CHROME: list[ExperimentParams] = [
-    ExperimentParams(calendar_web),
-    ExperimentParams(calendar_native),
-    ExperimentParams(chat_web),
-    ExperimentParams(chat_native),
-    ExperimentParams(mail_web),
-    ExperimentParams(mail_native),
-]
-
-ALL: list[ExperimentParams] = [
-    ExperimentParams(calendar_web),
-    ExperimentParams(calendar_firefox),
-    ExperimentParams(calendar_native),
-    ExperimentParams(chat_web),
-    ExperimentParams(chat_firefox),
-    ExperimentParams(chat_native),
-    ExperimentParams(mail_web),
-    ExperimentParams(mail_firefox),
-    ExperimentParams(mail_native),
-]
-
-
-
 RATE = 0.7
 N = 12
 # N = 1
@@ -67,7 +44,7 @@ ALL_MEM: list[ExperimentParams] = [
     ExperimentParams(mail_native, lib.decay(310 * MEGABYTE, RATE, N)),
 ]
 
-def run_all(experiments: list[ExperimentParams]=ALL) -> None:
+def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
     top_ctx = Context.from_module("classic")
     graphs_dir = top_ctx.joinpath("graphs_all")
     lib.ensure_dir_exists(graphs_dir)
