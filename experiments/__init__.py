@@ -48,8 +48,9 @@ def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
     top_ctx = Context.from_module("classic")
     graphs_dir = top_ctx.joinpath("graphs_all")
     lib.ensure_dir_exists(graphs_dir)
+    out_ctx = top_ctx.get_child("out")
     for params in experiments:
-        ex_ctx = top_ctx.get_child(params.name())
+        ex_ctx = out_ctx.get_child(params.name())
         for (i, mem) in enumerate(params.mems):
             took_long_time = False
             mem_ctx = ex_ctx.get_child_with_mem(i, mem)

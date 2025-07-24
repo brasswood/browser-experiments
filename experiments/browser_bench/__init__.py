@@ -43,12 +43,13 @@ def main() -> None:
     top_ctx = Context.from_module(__name__)
     graphs_all = top_ctx.joinpath("graphs_all")
     lib.ensure_dir_exists(graphs_all)
+    out_ctx = top_ctx.get_child("out")
     for params in EXPERIMENTS:
         assert params.name == "chromium" or params.name == "firefox"
         start_button = lib.get_resource(f"start_button_{params.name}.png")
         details_button = lib.get_resource(f"details_button_{params.name}.png")
         copy_json_button = lib.get_resource(f"copy_json_button_{params.name}.png")
-        browser_ctx = top_ctx.get_child(params.name)
+        browser_ctx = out_ctx.get_child(params.name)
         for (i, mem) in enumerate(params.mems):
             mem_ctx = browser_ctx.get_child_with_mem(i, mem)
             try:
