@@ -26,8 +26,8 @@ class ExperimentParams:
     def name(self) -> str:
         return self.module.__name__.split('.')[-1]
 
-RATE = 0.7
-N = 12
+RATE = 0.9
+N = 50
 # N = 1
 SAMPLES = 10
 # SAMPLES = 1
