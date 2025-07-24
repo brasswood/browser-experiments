@@ -149,11 +149,18 @@ MEGABYTE: int = KILOBYTE * 1000
 GIGABYTE: int = MEGABYTE * 1000
 
 def decay(start: int, rate: float, n: int) -> list[int | None]:
-    ret: list[int | None] = [None]
-    mem = start
-    for _ in range(n+1): # want to include None, start, all the way up to start * rate**n
-        ret.append(mem)
-        mem = int(mem*rate)
+    """
+    start: the first memory constraint
+    rate: rate to decay the memory constraint each iteration (fraction)
+    n: number of iterations to perform (first iteration will always be unconstrained)
+    """
+    ret: list[int | None] = []
+    if n > 0:
+        ret.append(None)
+        mem = start
+        for _ in range(n-1): # want to include None, start, all the way up to start * rate**n
+            ret.append(mem)
+            mem = int(mem*rate)
     return ret
 
 def start_with_mem(command: list[str], mem: int | None) -> Popen[bytes]:
