@@ -15,7 +15,7 @@
 import shutil
 import time
 import pyperclip
-from ..lib import Context, MEGABYTE, TookLongTimeException, RelPath
+from ..lib import Context, MEGABYTE, TookLongTimeException
 from .. import lib
 import pyautogui
 from pyautogui import ImageNotFoundException
