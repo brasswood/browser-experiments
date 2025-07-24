@@ -270,7 +270,7 @@ class App(AbstractContextManager["App", None]):
         self.send_signal(SIGKILL, "all")
     
     def is_running(self) -> bool:
-        return self.systemd_proc.poll() is not None
+        return self.systemd_proc.poll() is None
 
     def wait(self):
         self.systemd_proc.wait()
