@@ -1,0 +1,3 @@
+[submodule "smaps-profiler"]
+	path = smaps-profiler
+	url = https://github.com/brasswood/smaps-profiler
