@@ -41,8 +41,6 @@ EXPERIMENTS = [
 
 def main() -> None:
     top_ctx = Context.from_module(__name__)
-    graphs_all = top_ctx.joinpath("graphs_all")
-    lib.ensure_dir_exists(graphs_all)
     out_ctx = top_ctx.get_child("out")
     for params in EXPERIMENTS:
         assert params.name == "chromium" or params.name == "firefox"
@@ -81,8 +79,6 @@ def main() -> None:
                         except Exception as e:
                             sample_ctx.logger.exception(e)
                             continue
-                        finally:
-                            shutil.copy2(sample_ctx.joinpath("graph.svg"), graphs_all.joinpath(f"{browser_ctx.name}_{mem_ctx.name}_{sample_ctx.name}.svg"))
             except TookLongTimeException:
                 mem_ctx.logger.warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
                 break

@@ -46,8 +46,6 @@ ALL_MEM: list[ExperimentParams] = [
 
 def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
     top_ctx = Context.from_module("classic")
-    graphs_dir = top_ctx.joinpath("graphs_all")
-    lib.ensure_dir_exists(graphs_dir)
     out_ctx = top_ctx.get_child("out")
     for params in experiments:
         ex_ctx = out_ctx.get_child(params.name())
@@ -58,7 +56,6 @@ def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
                 sample_ctx = mem_ctx.get_child_with_sample(j)
                 try:
                     params.module.run_experiment(sample_ctx)
-                    shutil.copy2(sample_ctx.joinpath("graph.svg"), graphs_dir.joinpath(f"{ex_ctx.name}_{mem_ctx.name}_{sample_ctx.name}.svg"))
                 except TookLongTimeException:
                     sample_ctx.logger.warning("Application took longer than 25 seconds to exit. Refusing to reduce memory any more for this workload.")
                     took_long_time = True
