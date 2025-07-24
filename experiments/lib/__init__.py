@@ -377,7 +377,7 @@ class Context:
        return Context(name, self.base_path.joinpath(name), self._get_child_logger(name), self.mem)
     
     def get_child_with_mem(self, i: int, mem: int | None) -> "Context":
-        name = f"{i:02d}_{mem}_bytes"
+        name = f"{i:02d}_{mem}_{human_mem_str(mem)}"
         return Context(name, self.base_path.joinpath(name), self._get_child_logger(name), mem)
 
     def get_child_with_sample(self, i: int) -> "Context":
