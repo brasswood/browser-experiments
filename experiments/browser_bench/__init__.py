@@ -74,12 +74,14 @@ def main() -> None:
                             # in this case, we just break to close the browser, because we
                             # are ordinarily leaving the browser open between runs so we're hopeless
                             # to get an accurate next measurement without waiting arbitrarily long.
-                            sample_ctx.logger.error("Image not found, perhaps the application is too unresponsive. Copying graph to graphs_all anyway.", exc_info=True)
-                            break
+                            sample_ctx.logger.error("Image not found, perhaps the application is too unresponsive. Refusing to reduce memory any more for this workload.", exc_info=True)
+                            raise
                         except Exception as e:
                             sample_ctx.logger.exception(e)
             except TookLongTimeException as e:
                 mem_ctx.logger.warning(f"Application took longer than {e.warn_time} seconds to exit. Refusing to reduce memory any more for this workload.")
+                break
+            except ImageNotFoundException:
                 break
             except Exception as e:
                 mem_ctx.logger.exception(e)
