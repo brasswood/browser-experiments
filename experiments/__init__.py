@@ -15,7 +15,6 @@
 from typing import List
 from types import ModuleType
 from . import calendar_web, calendar_firefox, calendar_native, chat_web, chat_firefox, chat_native, mail_web, mail_firefox, mail_native
-import shutil
 from .lib import MEGABYTE, Context, TookLongTimeException
 from . import lib
 
