@@ -336,7 +336,7 @@ class Monitor(AbstractContextManager["Monitor", None]):
     def __exit__(self, exc_type: type[BaseException] | None, exc_value: BaseException | None, traceback: TracebackType | None) -> None:
         self.stop_monitor()
 
-class Context:
+class Context(AbstractContextManager["Context", None]):
     """
     the purpose of this class is to hold a base path, a logger, and a memory amount.
     based on that info it provides convenience methods for starting apps (so that they
@@ -398,3 +398,19 @@ class Context:
     def open(self, path: RelPath | str, mode: str) -> IO[Any]:
         return open2(self.joinpath(path), mode)
 
+    def cleanup(self) -> None:
+        """
+        Close this context's logger's FileHandler's file. Before doing this, I got an error for
+        too many open files. I am not certain if this is the cause, but I can't think of anything else,
+        and [this](https://stackoverflow.com/questions/15435652/python-does-not-release-filehandles-to-logfile)
+        SO question suggests that loggers do not automatically close their open files. 
+        Maybe it's smaps-profiler. I don't know.
+        """
+        for handler in self.logger.handlers:
+            handler.close()
+
+    def __exit__(self, exc_type: type[BaseException] | None, exc_value: BaseException | None, traceback: TracebackType | None) -> None:
+        self.cleanup()
+
+    def __del__(self) -> None:
+        self.cleanup()
