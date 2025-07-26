@@ -44,21 +44,20 @@ ALL_MEM: list[ExperimentParams] = [
 ]
 
 def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
-    top_ctx = Context.from_module("classic")
-    out_ctx = top_ctx.get_child("out")
-    for params in experiments:
-        ex_ctx = out_ctx.get_child(params.name())
-        for (i, mem) in enumerate(params.mems):
-            took_long_time = False
-            mem_ctx = ex_ctx.get_child_with_mem(i, mem)
-            for j in range(SAMPLES):
-                sample_ctx = mem_ctx.get_child_with_sample(j)
-                try:
-                    params.module.run_experiment(sample_ctx)
-                except TookLongTimeException as e:
-                    sample_ctx.logger.warning(f"Application took longer than {e.warn_time} seconds to exit. Refusing to reduce memory any more for this workload.")
-                    took_long_time = True
-                except Exception as e:
-                    sample_ctx.logger.exception(e)
-            if took_long_time:
-                break
+    with Context.from_module("classic") as top_ctx, top_ctx.get_child("out") as out_ctx:
+        for params in experiments:
+            with out_ctx.get_child(params.name()) as ex_ctx:
+                for (i, mem) in enumerate(params.mems):
+                    took_long_time = False
+                    with ex_ctx.get_child_with_mem(i, mem) as mem_ctx:
+                        for j in range(SAMPLES):
+                            with mem_ctx.get_child_with_sample(j) as sample_ctx:
+                                try:
+                                    params.module.run_experiment(sample_ctx)
+                                except TookLongTimeException as e:
+                                    sample_ctx.logger.warning(f"Application took longer than {e.warn_time} seconds to exit. Refusing to reduce memory any more for this workload.")
+                                    took_long_time = True
+                                except Exception as e:
+                                    sample_ctx.logger.exception(e)
+                            if took_long_time:
+                                break
