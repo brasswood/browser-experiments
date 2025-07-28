@@ -18,15 +18,17 @@ from pyautogui import ImageNotFoundException
 from ..lib import Context
 from .. import lib
 
-def run_experiment(ctx: Context) -> None:
-    with ctx.monitor("firefox"), ctx.start_app(["firefox", "-P", "Experiments", "about:blank"]):
-        button = lib.get_resource("open_hw_chat_button.png")
-        # wait 30 on the blank page
-        time.sleep(30)
-        ctx.screenshot("blank.png")
-        # navigate to mov.im/chat
-        # unfortunately, the type stub incorrectly says that minSearchTime is a required argument for the following line
-        lib.load_page("firefox", 'mov.im/chat')
+def run_experiment(ctx: Context, do_baseline: bool) -> None:
+    init_page = "about:blank" if do_baseline else "mov.im/chat"
+    button = lib.get_resource("open_hw_chat_button.png")
+    with ctx.monitor("firefox"), ctx.start_app(["firefox", "-P", "Experiments", init_page]):
+        if do_baseline:
+            # wait 30 on the blank page
+            time.sleep(30)
+            ctx.screenshot("blank.png")
+            # navigate to mov.im/chat
+            # unfortunately, the type stub incorrectly says that minSearchTime is a required argument for the following line
+            lib.load_page("firefox", 'mov.im/chat')
         # start a timer
         start = time.time()
         # try to click Open Hardware Chat, waiting up to 10 seconds for the page to load
@@ -45,4 +47,4 @@ def run_experiment(ctx: Context) -> None:
         ctx.screenshot("app.png")
 
 def main() -> None:
-    run_experiment(Context.from_module_with_mem(__name__))
+    run_experiment(Context.from_module_with_mem(__name__), True)

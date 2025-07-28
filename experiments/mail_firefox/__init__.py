@@ -16,15 +16,17 @@ import time
 from ..lib import Context
 from .. import lib
 
-def run_experiment(ctx: Context) -> None:
-    with ctx.monitor("firefox"), ctx.start_app(["firefox", "-P", "Experiments", "about:blank"]):
-        # wait 30 on the blank page
-        time.sleep(30)
-        ctx.screenshot("blank.png")
-        lib.load_page("firefox", 'outlook.office365.com')
-        # wait another 30
+def run_experiment(ctx: Context, do_baseline: bool) -> None:
+    init_page = "about:blank" if do_baseline else "outlook.office365.com"
+    with ctx.monitor("firefox"), ctx.start_app(["firefox", "-P", "Experiments", init_page]):
+        if do_baseline:
+            # wait 30 on the blank page
+            time.sleep(30)
+            ctx.screenshot("blank.png")
+            lib.load_page("firefox", 'outlook.office365.com')
+            # wait another 30
         time.sleep(30)
         ctx.screenshot("app.png")
 
 def main() -> None:
-    run_experiment(Context.from_module_with_mem(__name__))
+    run_experiment(Context.from_module_with_mem(__name__), True)

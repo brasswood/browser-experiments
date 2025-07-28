@@ -30,6 +30,7 @@ N = 50
 # N = 1
 SAMPLES = 10
 # SAMPLES = 1
+DO_BASELINE=False
 
 ALL_MEM: list[ExperimentParams] = [
     ExperimentParams(calendar_web, lib.decay(620 * MEGABYTE, RATE, N)),
@@ -53,7 +54,7 @@ def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
                         for j in range(SAMPLES):
                             with mem_ctx.get_child_with_sample(j) as sample_ctx:
                                 try:
-                                    params.module.run_experiment(sample_ctx)
+                                    params.module.run_experiment(sample_ctx, do_baseline=DO_BASELINE)
                                 except TookLongTimeException as e:
                                     sample_ctx.logger.warning(f"Application took longer than {e.warn_time} seconds to exit. Refusing to reduce memory any more for this workload.")
                                     took_long_time = True

@@ -16,14 +16,14 @@
 import time
 from .lib import Context
 
-def run_experiment(ctx: Context) -> None:
+def run_experiment(ctx: Context, do_baseline: bool) -> None:
     with ctx.monitor("gnome-calendar"), ctx.start_app(["gnome-calendar"]):
         # Run experiment
         time.sleep(30)
         ctx.screenshot("app.png")
 
 def main() -> None:
-        run_experiment(Context.from_module_with_mem(__name__))
+        run_experiment(Context.from_module_with_mem(__name__), True)
 
 if __name__ == "__main__":
     main()

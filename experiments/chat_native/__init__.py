@@ -18,7 +18,7 @@ from pyautogui import ImageNotFoundException
 from ..lib import Context
 from .. import lib
 
-def run_experiment(ctx: Context) -> None:
+def run_experiment(ctx: Context, do_baseline: bool) -> None:
     button1 = lib.get_resource("1.png")
     with ctx.monitor("dino"), ctx.start_app(["dino"]):
         # start a timer
@@ -39,4 +39,4 @@ def run_experiment(ctx: Context) -> None:
         ctx.screenshot("app.png")
 
 def main() -> None:
-    run_experiment(Context.from_module_with_mem(__name__))
+    run_experiment(Context.from_module_with_mem(__name__), True)
