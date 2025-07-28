@@ -165,9 +165,6 @@ def decay(start: int, rate: float, n: int) -> list[int | None]:
             mem = int(mem*rate)
     return ret
 
-def start_with_mem(command: list[str], mem: int | None) -> Popen[bytes]:
-    return Popen(["systemd-run", "--user", "--scope", "--unit=browser_experiment", "--collect", "-p", "MemoryHigh={}".format(systemd_mem_str(mem))] + command)
-
 class Args:
     def __init__(self, output_dir: Path, mem: int | None):
         self.output_dir = output_dir
