@@ -28,8 +28,8 @@ class ExperimentParams:
 
 URL = "https://browserbench.org/Speedometer3.1/"
 
-RATE = 0.9
-N = 50
+RATE = 0.8
+N = 17
 # N = 1
 SAMPLES = 10
 # SAMPLES = 1

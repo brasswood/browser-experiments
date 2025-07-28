@@ -19,7 +19,7 @@ from ..lib import Context
 from .. import lib
 
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
-    button1 = lib.get_resource("1.png")
+    button1 = lib.get_resource("open_hw_chat_icon.png")
     with ctx.monitor("dino"), ctx.start_app(["dino"]):
         # start a timer
         start = time.time()
