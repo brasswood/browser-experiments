@@ -11,6 +11,9 @@ dependencies = [
   "humanize",
   "pyperclip",
   "pathspec",
+  "tkinter",
+  "types-PyAutoGUI",
+  "types-pyperclip",
 ]
 
 [project.scripts]
@@ -20,7 +23,7 @@ ex-chat-web = "experiments.chat_web:main"
 ex-mail-web = "experiments.mail_web:main"
 ex-chat-native = "experiments.chat_native:main"
 ex-mail-native = "experiments.mail_native:main"
-ex-all = "experiments:run_all"
+gui-apps = "experiments:run_all"
 browser-bench = "experiments:browser_bench:main"
 
 [tool.mypy]
