@@ -30,8 +30,8 @@ def run_experiment(ctx: Context, do_baseline: bool) -> None:
             # Run experiment
             time.sleep(30)
             ctx.screenshot("app.png")
-            app.kill() # kill main process
-            app.send_signal(signal.SIGTERM, 'all') # kill all processes (evolution is so stubborn)
+            app.terminate() # terminate main process
+            app.send_signal(signal.SIGTERM, 'all') # terminate all processes (evolution is so stubborn)
 
 def main() -> None:
     run_experiment(Context.from_module_with_mem(__name__), True)
