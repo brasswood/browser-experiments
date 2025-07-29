@@ -230,7 +230,7 @@ def create_experiment_files(base_path: Path):
     if base_path.exists():
         print(f"{base_path} exists; please remove it or use another output directory")
         sys.exit(1)
-    build_smaps_profiler()
+    # build_smaps_profiler()
     info_path = base_path.joinpath("info.yaml")
     gen_info(info_path)
     with open2(base_path.joinpath("sys_argv"), 'w') as f:

@@ -1,10 +1,11 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-build-scripts"]
 build-backend = "hatchling.build"
 
 [project]
 name = "experiments"
 version = "0.0.6"
+requires-python = ">= 3.11"
 dependencies = [
   "pyautogui==0.9.53",
   "opencv-python",
@@ -30,3 +31,12 @@ strict = true
 
 [tool.pyright]
 exclude = [ "out/" ]
+
+[[tool.hatch.build.hooks.build-scripts.scripts]]
+out_dir = ""
+commands = [
+  "cargo build --release --manifest-path ./smaps-profiler/Cargo.toml"
+]
+artifacts = [
+  "./smaps-profiler/target/release/"
+]
