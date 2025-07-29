@@ -15,8 +15,15 @@
 #!/usr/bin/python3
 import time
 from .lib import Context
+import subprocess
 
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
+    # Well this sucks
+    subprocess.run(["systemctl", "--user", "stop", "evolution-addressbook-factory.service"])
+    subprocess.run(["systemctl", "--user", "stop", "evolution-calendar-factory.service"])
+    subprocess.run(["systemctl", "--user", "stop", "evolution-source-registry.service"])
+    subprocess.run(["systemctl", "--user", "stop", "evolution-user-prompter.service"])
+    subprocess.run(["pkill", "-f", "evolution-alarm-notify"])
     with ctx.monitor("evolution"), ctx.start_app(["evolution"]):
         # Run experiment
         time.sleep(30)
