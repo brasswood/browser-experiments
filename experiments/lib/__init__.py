@@ -42,16 +42,19 @@ def project_root() -> Path:
     return Path(__file__).parent.parent.parent
 
 # ChatGPT gave me this wonderful function which I then heavily modified
-def copy_project(output_dir: Path) -> None:
-    os.makedirs(output_dir)
+def copy_project(output_base_dir: Path, src_dir: RelPath) -> None:
+    os.makedirs(output_base_dir/src_dir)
     root = project_root()
     with open2(root/".gitignore", 'r') as f:
         spec = PathSpec.from_lines("gitwildmatch", f)
     for match in spec.match_tree_entries(root, negate=True):
+        # https://stackoverflow.com/questions/3812849/how-to-check-whether-a-directory-is-a-sub-directory-of-another-directory
+        if Path(match.path).resolve().is_relative_to(output_base_dir.resolve()): # avoid bad recursion
+            continue
         if match.is_dir():
-            os.makedirs(output_dir/match.path)
+            os.makedirs(output_base_dir/src_dir/match.path)
         else:
-            shutil.copy2(root/match.path, output_dir/match.path)
+            shutil.copy2(root/match.path, output_base_dir/src_dir/match.path)
 
 class TookLongTimeException(Exception):
     def __init__(self, warn_time: float, actual_time: float):
@@ -249,7 +252,7 @@ def create_experiment_files(base_path: Path):
     with open2(base_path.joinpath("cmdline"), 'w') as f:
         f.write(f"{os.getcwd()}$ ")
         f.write(cmdline)
-    copy_project(base_path.joinpath("src"))
+    copy_project(base_path, RelPath("src"))
 
 class ExitTimeouts:
     def __init__(self, warn: float, term: float, abrt: float):
@@ -363,12 +366,13 @@ class Context(AbstractContextManager["Context", None]):
         # parse system arguments
         args = parse_sysargs_with_mem()
 
+        output_dir = Path(args.output_dir)
         # top-level experiment directory
-        create_experiment_files(args.output_dir)
+        create_experiment_files(output_dir)
 
         # get logger
-        logger = get_logger(name, args.output_dir)
-        return Context(name, args.output_dir, logger, args.mem)
+        logger = get_logger(name, output_dir)
+        return Context(name, output_dir, logger, args.mem)
 
     @classmethod
     def from_module(cls, name: str) -> "Context":
