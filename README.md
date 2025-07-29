@@ -61,6 +61,7 @@ or
 $ git clone https://github.com/brasswood/browser-experiments
 $ cd browser-experiments
 $ git submodule update --init --recursive
+```
 
 ## Install this package
 ```console
