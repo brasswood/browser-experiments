@@ -15,7 +15,7 @@
 #!/usr/bin/python3
 import time
 from ..lib import App, Context
-import lib
+from .. import lib
 import subprocess
 import signal
 import pyautogui
