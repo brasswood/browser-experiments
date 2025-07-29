@@ -44,6 +44,10 @@ scripts, all data is placed in the directory specified by the first command line
 ## Setup
 I have tried to make running this easier by distributing it as a python package; however, there is still quite a bit of setup you will have to do to get it running properly. The following sections will describe it.
 
+## System Requirements
+These scripts have been tested on an Ubuntu MATE 24.04 computer running Python 3.13 from the nixos-24.11 repository.
+They are known to not work on an Ubuntu 22.04 system running Python 3.10.
+
 ## Install Prerequisites
 ```console
 $ sudo apt install gnuplot scrot xclip chromium-browser firefox dino-im gnome-calendar evolution
