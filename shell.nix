@@ -4,6 +4,7 @@
 
 with pkgs;
 let
+  rust = import (fetchTarball "https://github.com/nix-community/fenix/archive/main.tar.gz") { };
   types-PyScreeze = python3Packages.callPackage ./types-pyscreeze.nix { };
   types-PyAutoGUI = python3Packages.callPackage ./types-pyautogui.nix { inherit types-PyScreeze; };
   types-pyperclip = python3Packages.callPackage ./types-pyperclip.nix { };
@@ -17,6 +18,7 @@ python3Packages.buildPythonPackage rec {
     mypy
     scrot
     xclip
+    rust.stable.toolchain
   ];
   pyproject = true;
   propagatedBuildInputs = with python3Packages; [
