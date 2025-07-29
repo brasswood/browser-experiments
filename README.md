@@ -123,8 +123,11 @@ The memory constraints used can be tuned in both `experiments/browser_bench/__in
 `experiments/__init__.py`. The main constants are:
 
 `RATE: float`: the factor to multiply the current memory constraint by to get the next memory constraint. Current setting: 0.8
+
 `N: int`: number of memory constraints to try. Current setting: 17
+
 `SAMPLES: int`: number of samples to take for each memory constraint. Current setting: 10
+
 `DO_BASELINE: bool` (gui-apps only): for browsers, whether to open to about:blank for 30 seconds each sample to get the baseline
 memory usage. Current setting: False
 
