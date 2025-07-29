@@ -23,7 +23,7 @@ ex-mail-web = "experiments.mail_web:main"
 ex-chat-native = "experiments.chat_native:main"
 ex-mail-native = "experiments.mail_native:main"
 gui-apps = "experiments:run_all"
-browser-bench = "experiments:browser_bench:main"
+browser-bench = "experiments.browser_bench:main"
 
 [tool.mypy]
 strict = true
