@@ -21,6 +21,8 @@ from .. import lib
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
     google = lib.get_resource("google.png")
     init_page =  "about:blank" if do_baseline else "outlook.office365.com"
+    folder = lib.get_resource("experiment_folder.png")
+    header = lib.get_resource("folder_header.png")
     with ctx.monitor("chromium"), ctx.start_app(["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", init_page]):
         if do_baseline:
             try:
@@ -33,8 +35,16 @@ def run_experiment(ctx: Context, do_baseline: bool) -> None:
             ctx.screenshot("blank.png")
             # navigate to outlook
             lib.load_page("chromium", 'outlook.office365.com')
-        # wait another 30
-        time.sleep(30)
+        time_remaining = 30
+        point, t = lib.locate_center_time(folder, time_remaining)
+        time_remaining -= t
+        pyautogui.click(*point)
+
+        (x, y), t = lib.locate_center_time(header, time_remaining)
+        time_remaining -= t
+        pyautogui.click(x, y+20)
+
+        time.sleep(time_remaining)
         ctx.screenshot("app.png")
 
 def main() -> None:
