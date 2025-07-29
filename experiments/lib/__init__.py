@@ -196,9 +196,17 @@ def parse_sysargs() -> Path:
 def format_exception(e: BaseException) -> str:
     return "{}: {}".format(type(e).__name__, e)
 
-def locate_center(image: str | Path, timeout: float = 0, confidence: float = 0.9) -> tuple[int, int]:
+# Returns (point, time_took) if image found within timeout, otherwise raises ImageNotFoundException.
+def locate_center_time(image: str | Path, timeout: float = 0, confidence: float = 0.9) -> tuple[tuple[int, int], float]:
+    start = time.time()
     point = pyautogui.locateCenterOnScreen(str(image), minSearchTime=timeout, confidence=confidence)
+    end = time.time()
     assert point is not None
+    return (point, end-start)
+
+# Returns point if image found within timeout, otherwise raises ImageNotFoundException.
+def locate_center(image: str | Path, timeout: float = 0, confidence: float = 0.9) -> tuple[int, int]:
+    point, _time = locate_center_time(image, timeout, confidence)
     return point
 
 def ensure_dir_exists(path: Path) -> None:
