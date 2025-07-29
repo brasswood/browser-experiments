@@ -17,7 +17,7 @@ from pathlib import Path
 import importlib.resources as res
 import inspect
 import shutil
-from typing import IO, Any, Literal, Self
+from typing import IO, Any, Literal
 import subprocess
 from subprocess import Popen
 from signal import SIGINT, SIGTERM, SIGABRT, SIGKILL
@@ -263,7 +263,7 @@ class App(AbstractContextManager["App", None]):
         self.logger = logger
         self.exit_timeouts = exit_timeouts
 
-    def __enter__(self) -> Self:
+    def __enter__(self) -> "App":
         return self
 
     def send_signal(self, signal: int, whom: Literal["main", "all"]):
