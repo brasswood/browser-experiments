@@ -5,6 +5,8 @@ Run them to verify (or dispute) the results of my master's thesis.
 
 Your computer might look like it's possessed when these are running. Don't panic! This is just pyautogui automatically navigating stuff.
 
+These scripts run a lot of tests and can take a long time. It may be a good idea to run them overnight.
+
 **CAUTION:** All of the experiments besides browser_bench save screenshots. This is for diagnostic purposes if the script crashes.
 If the screenshots contain personal information, delete them using `find` before sending them. They are all .png files.
 
