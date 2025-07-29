@@ -109,12 +109,16 @@ Make sure you are logged into these websites and don't have to reenter your user
   - [ ] outlook.office365.com
 
 ## Go!
+Close all applications. Then:
+
 ```console
 $ ./mega.sh
 ```
 
 This will run the browserbench experiment (output directory: out/browser_bench), then the other
 gui apps (output directory: out/gui_apps)
+
+Try not to disturb your computer while the scripts are running.
 
 To run an individual experiment in this package (example): python -m experiments.browser_bench <output_dir>
 
