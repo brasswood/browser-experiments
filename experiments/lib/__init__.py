@@ -62,7 +62,7 @@ class AlreadyRunningException(Exception):
     pass
 
 def assert_not_running(regex: str) -> None:
-    res = subprocess.run(["pgrep", regex])
+    res = subprocess.run(["pgrep", "-f", regex])
     if res.returncode == 0:
         raise AlreadyRunningException(f"A process matching {regex} is already running")
     elif res.returncode == 1:
