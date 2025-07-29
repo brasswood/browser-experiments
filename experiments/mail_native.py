@@ -16,6 +16,7 @@
 import time
 from .lib import Context
 import subprocess
+import signal
 
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
     # Well this sucks
@@ -24,10 +25,13 @@ def run_experiment(ctx: Context, do_baseline: bool) -> None:
     subprocess.run(["systemctl", "--user", "stop", "evolution-source-registry.service"])
     subprocess.run(["systemctl", "--user", "stop", "evolution-user-prompter.service"])
     subprocess.run(["pkill", "-f", "evolution-alarm-notify"])
-    with ctx.monitor("evolution"), ctx.start_app(["evolution"]):
-        # Run experiment
-        time.sleep(30)
-        ctx.screenshot("app.png")
+    with ctx.monitor("evolution"):
+        with ctx.start_app(["evolution"]) as app:
+            # Run experiment
+            time.sleep(30)
+            ctx.screenshot("app.png")
+            app.kill() # kill main process
+            app.send_signal(signal.SIGTERM, 'all') # kill all processes (evolution is so stubborn)
 
 def main() -> None:
     run_experiment(Context.from_module_with_mem(__name__), True)
