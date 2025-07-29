@@ -124,7 +124,7 @@ The memory constraints used can be tuned in both `experiments/browser_bench/__in
 
 `RATE: float`: the factor to multiply the current memory constraint by to get the next memory constraint. Current setting: 0.8
 
-`N: int`: number of memory constraints to try. Current setting: 17
+`N: int`: number of memory constraints to try, including no memory constraint. Current setting: 17
 
 `SAMPLES: int`: number of samples to take for each memory constraint. Current setting: 10
 
