@@ -17,7 +17,7 @@ from pathlib import Path
 import importlib.resources as res
 import inspect
 import shutil
-from typing import IO, Any, Literal
+from typing import IO, Any, Callable, Literal
 import subprocess
 from subprocess import Popen
 from signal import SIGINT, SIGTERM, SIGABRT, SIGKILL
@@ -258,7 +258,7 @@ class ExitTimeouts:
         self.abrt = abrt
 
 class App(AbstractContextManager["App", None]):
-    def __init__(self, command: list[str], base_path: Path, logger: Logger, mem: int | None, exit_timeouts: ExitTimeouts = ExitTimeouts(20, 30, 40)):
+    def __init__(self, command: list[str], base_path: Path, logger: Logger, mem: int | None, exit_timeouts: ExitTimeouts = ExitTimeouts(20, 30, 40), custom_term_routine: Callable[["App"], None] | None = None):
         self.unit_name = str(uuid.uuid1())
         """
         --wait causes systemd-run to block until the service completes. This is useful so that we can just wait() on this process rather than continuously polling the service with `systemctl --user is-active {self.unit_name}`.
@@ -270,6 +270,7 @@ class App(AbstractContextManager["App", None]):
         self.base_path = base_path
         self.logger = logger
         self.exit_timeouts = exit_timeouts
+        self.custom_term_routine = custom_term_routine
 
     def __enter__(self) -> "App":
         return self
@@ -282,7 +283,10 @@ class App(AbstractContextManager["App", None]):
             subprocess.run(["systemctl", "--user", "kill", f"--kill-whom={whom}", f"--signal={signal}", self.unit_name])
 
     def terminate(self):
-        self.send_signal(SIGTERM, "main")
+        if self.custom_term_routine:
+            self.custom_term_routine(self)
+        else:
+            self.send_signal(SIGTERM, "main")
     
     def kill(self):
         self.send_signal(SIGKILL, "all")
@@ -388,7 +392,7 @@ class Context(AbstractContextManager["Context", None]):
     def get_child_with_sample(self, i: int) -> "Context":
         return Context.get_child(self, f"{i:02d}")
 
-    def start_app(self, command: list[str], exit_timeouts: ExitTimeouts = ExitTimeouts(20, 30, 40)) -> App:
+    def start_app(self, command: list[str], exit_timeouts: ExitTimeouts = ExitTimeouts(20, 30, 40), custom_term_routine: Callable[[App], None] | None = None) -> App:
         return App(command, self.base_path, self.logger, self.mem, exit_timeouts)
 
     def monitor(self, regex: str, graph_out: RelPath | str = "graph.svg", stdout_to_file: RelPath | str = "smaps_profiler.ndjson", check_if_running: bool = True):

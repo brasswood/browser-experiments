@@ -14,24 +14,42 @@
 
 #!/usr/bin/python3
 import time
-from .lib import Context
+from ..lib import App, Context
+import lib
 import subprocess
 import signal
+import pyautogui
 
-def run_experiment(ctx: Context, do_baseline: bool) -> None:
+def die_evolution_die():
     # Well this sucks
     subprocess.run(["systemctl", "--user", "stop", "evolution-addressbook-factory.service"])
     subprocess.run(["systemctl", "--user", "stop", "evolution-calendar-factory.service"])
     subprocess.run(["systemctl", "--user", "stop", "evolution-source-registry.service"])
     subprocess.run(["systemctl", "--user", "stop", "evolution-user-prompter.service"])
     subprocess.run(["pkill", "-f", "evolution-alarm-notify"])
-    with ctx.monitor("evolution"):
-        with ctx.start_app(["evolution"]) as app:
-            # Run experiment
-            time.sleep(30)
-            ctx.screenshot("app.png")
-            app.terminate() # terminate main process
-            app.send_signal(signal.SIGTERM, 'all') # terminate all processes (evolution is so stubborn)
+
+def custom_term(app: App):
+    app.send_signal(signal.SIGTERM, 'main') # terminate main process
+    app.send_signal(signal.SIGTERM, 'all') # terminate all processes (evolution is so stubborn)
+    die_evolution_die()
+
+def run_experiment(ctx: Context, do_baseline: bool) -> None:
+    folder = lib.get_resource("experiment_folder.png")
+    header = lib.get_resource("folder_header.png")
+    with ctx.monitor("evolution"), ctx.start_app(["evolution"], custom_term_routine=custom_term):
+        # Run experiment
+        time_remaining = 30
+
+        point, t = lib.locate_center_time(folder, time_remaining)
+        time_remaining -= t
+        pyautogui.click(*point)
+        
+        (x, y), t = lib.locate_center_time(header, time_remaining)
+        time_remaining -= t
+        pyautogui.click(x, y+20)
+
+        time.sleep(time_remaining)
+        ctx.screenshot("app.png")
 
 def main() -> None:
     run_experiment(Context.from_module_with_mem(__name__), True)
