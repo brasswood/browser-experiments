@@ -38,5 +38,5 @@ commands = [
   "cargo build --release --manifest-path ./smaps-profiler/Cargo.toml"
 ]
 artifacts = [
-  "./smaps-profiler/target/release/"
+  "./smaps-profiler/target/release/smaps-profiler"
 ]
