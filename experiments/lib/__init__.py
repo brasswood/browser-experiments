@@ -120,7 +120,7 @@ def load_page(browser: Literal["chromium", "firefox"], url: str) -> None:
         point = locate_center(get_reload_button("firefox"), timeout=10)
         (x, y) = point
         pyautogui.tripleClick(x=x+700, y=y)
-    pyautogui.write(url)
+    pyautogui.write(url, interval=0.13) # 430 CPM
     pyautogui.press('enter')
 
 def start_monitor(regex: str, graph_out: Path, stdout_to_file: Path, check_if_running: bool = True) -> Popen[bytes]:
