@@ -31,6 +31,7 @@ from logging import Logger
 import time
 from pathspec import PathSpec
 import pyautogui
+from pyautogui import ImageNotFoundException
 import uuid
 
 pyautogui.useImageNotFoundException(True)
@@ -200,12 +201,28 @@ def format_exception(e: BaseException) -> str:
     return "{}: {}".format(type(e).__name__, e)
 
 # Returns (point, time_took) if image found within timeout, otherwise raises ImageNotFoundException.
-def locate_center_time(image: str | Path, timeout: float = 0, confidence: float = 0.9) -> tuple[tuple[int, int], float]:
-    start = time.time()
-    point = pyautogui.locateCenterOnScreen(str(image), minSearchTime=timeout, confidence=confidence)
-    end = time.time()
-    assert point is not None
-    return (point, end-start)
+# If image is list, tries to find any one of the images.
+def locate_center_time(image: str | Path | list[str | Path], timeout: float = 0, confidence: float = 0.9) -> tuple[tuple[int, int], float]:
+    if isinstance(image, list):
+        start = time.time()
+        while True:
+            for im in image:
+                try:
+                    point = pyautogui.locateCenterOnScreen(str(im), minSearchTime=0, confidence=confidence)
+                    end = time.time()
+                    assert point is not None
+                    return (point, end-start)
+                except ImageNotFoundException:
+                    pass
+            end = time.time()
+            if end-start > timeout:
+                raise ImageNotFoundException
+    else:
+        start = time.time()
+        point = pyautogui.locateCenterOnScreen(str(image), minSearchTime=timeout, confidence=confidence)
+        end = time.time()
+        assert point is not None
+        return (point, end-start)
 
 # Returns point if image found within timeout, otherwise raises ImageNotFoundException.
 def locate_center(image: str | Path, timeout: float = 0, confidence: float = 0.9) -> tuple[int, int]:
