@@ -51,6 +51,17 @@ $ sudo apt install gnuplot scrot xclip chromium-browser firefox dino-im gnome-ca
 
 Additionally, make sure you have the rust toolchain installed: https://www.rust-lang.org/tools/install
 
+## Clone this repository
+**NOTE:** There is a submodule that you need to initialize.
+```console
+$ git clone --recurse-submodules https://github.com/brasswood/browser-experiments
+```
+or
+```console
+$ git clone https://github.com/brasswood/browser-experiments
+$ cd browser-experiments
+$ git submodule update --init --recursive
+
 ## Install this package
 ```console
 $ pip install -e .
