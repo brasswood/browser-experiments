@@ -397,7 +397,7 @@ class Context(AbstractContextManager["Context", None]):
         return Context.get_child(self, f"{i:02d}")
 
     def start_app(self, command: list[str], exit_timeouts: ExitTimeouts = ExitTimeouts(20, 30, 40), custom_term_routine: Callable[[App], None] | None = None) -> App:
-        return App(command, self.base_path, self.logger, self.mem, exit_timeouts)
+        return App(command, self.base_path, self.logger, self.mem, exit_timeouts, custom_term_routine)
 
     def monitor(self, regex: str, graph_out: RelPath | str = "graph.svg", stdout_to_file: RelPath | str = "smaps_profiler.ndjson", check_if_running: bool = True):
         return Monitor(regex, self.base_path, self.logger, graph_out, stdout_to_file, check_if_running)
