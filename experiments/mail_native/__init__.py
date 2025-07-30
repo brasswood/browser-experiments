@@ -33,18 +33,19 @@ def custom_term(app: App):
     die_evolution_die()
 
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
-    folder = lib.get_resource("experiment_folder.png")
+    folder_options = (lib.get_resource("experiment_folder.png"), lib.get_resource("experiment_folder_highlighted.png"))
     header = lib.get_resource("folder_header.png")
     with ctx.monitor("evolution"), ctx.start_app(["evolution"], custom_term_routine=custom_term):
         # Run experiment
         time_remaining = 30
 
-        point, t = lib.locate_center_time(folder, time_remaining)
+        point, t = lib.locate_center_time(folder_options, time_remaining)
         time_remaining -= t
         pyautogui.click(*point)
         
         (x, y), t = lib.locate_center_time(header, time_remaining)
         time_remaining -= t
+        pyautogui.moveTo(x, y+20)
         pyautogui.click(x, y+20)
 
         time.sleep(time_remaining)
