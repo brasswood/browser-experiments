@@ -74,6 +74,10 @@ $ pip install -e .
 
 ## Configure software
 
+### Outlook (affects Firefox, Chrome, and Evolution)
+- [ ] Create a folder called "Experiment" (without quotes) and copy or move a single message to that folder
+- [ ] Make sure the message is not unread, and that the "Experiment" folder shows up in the sidebar of each mail client
+
 ### Firefox
 - [ ] Create a new profile called "Experiments": https://support.mozilla.org/en-US/kb/profile-manager-create-remove-switch-firefox-profiles?redirectslug=profile-manager-create-and-remove-firefox-profiles&redirectlocale=en-US. Don't install any extensions in the new profile.
 - [ ] Suppress "restore session" prompt: Go to about:config and set browser.sessionstore.resume_from_crash to false (https://support.mozilla.org/en-US/questions/1418488) 
