@@ -45,7 +45,6 @@ def run_experiment(ctx: Context, do_baseline: bool) -> None:
         
         (x, y), t = lib.locate_center_time(header, time_remaining)
         time_remaining -= t
-        pyautogui.moveTo(x, y+20)
         pyautogui.click(x, y+20)
 
         time.sleep(time_remaining)
