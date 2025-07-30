@@ -33,6 +33,7 @@ from pathspec import PathSpec
 import pyautogui
 from pyautogui import ImageNotFoundException
 import uuid
+from collections.abc import Sequence
 
 pyautogui.useImageNotFoundException(True)
 
@@ -202,7 +203,7 @@ def format_exception(e: BaseException) -> str:
 
 # Returns (point, time_took) if image found within timeout, otherwise raises ImageNotFoundException.
 # If image is list, tries to find any one of the images.
-def locate_center_time(image: str | Path | list[str | Path], timeout: float = 0, confidence: float = 0.9) -> tuple[tuple[int, int], float]:
+def locate_center_time(image: str | Path | Sequence[str | Path], timeout: float = 0, confidence: float = 0.9) -> tuple[tuple[int, int], float]:
     if isinstance(image, list):
         start = time.time()
         while True:
