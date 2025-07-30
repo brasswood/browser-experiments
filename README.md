@@ -50,7 +50,7 @@ They are known to not work on an Ubuntu 22.04 system running Python 3.10.
 
 ## Install Prerequisites
 ```console
-$ sudo apt install gnuplot scrot xclip chromium-browser firefox dino-im gnome-calendar evolution
+$ sudo apt install gnuplot scrot xclip chromium-browser firefox dino-im gnome-calendar evolution evolution-ews
 ```
 
 Additionally, make sure you have the rust toolchain installed: https://www.rust-lang.org/tools/install
