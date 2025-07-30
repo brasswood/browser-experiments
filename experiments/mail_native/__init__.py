@@ -34,9 +34,14 @@ def custom_term(app: App):
 
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
     folder_options = (lib.get_resource("experiment_folder.png"), lib.get_resource("experiment_folder_highlighted.png"))
+    inbox_options = (lib.get_resource("inbox_icon.png"), lib.get_resource("inbox_icon_highlighted.png"))
     with ctx.monitor("evolution"), ctx.start_app(["evolution"], custom_term_routine=custom_term):
         # Run experiment
         time_remaining = 30
+
+        point, t = lib.locate_center_time(inbox_options, time_remaining)
+        time_remaining -= t
+        pyautogui.click(*point)
 
         point, t = lib.locate_center_time(folder_options, time_remaining)
         time_remaining -= t
