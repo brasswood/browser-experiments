@@ -34,7 +34,6 @@ def custom_term(app: App):
 
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
     folder_options = (lib.get_resource("experiment_folder.png"), lib.get_resource("experiment_folder_highlighted.png"))
-    header = lib.get_resource("folder_header.png")
     with ctx.monitor("evolution"), ctx.start_app(["evolution"], custom_term_routine=custom_term):
         # Run experiment
         time_remaining = 30
@@ -43,9 +42,7 @@ def run_experiment(ctx: Context, do_baseline: bool) -> None:
         time_remaining -= t
         pyautogui.click(*point)
         
-        (x, y), t = lib.locate_center_time(header, time_remaining)
-        time_remaining -= t
-        pyautogui.click(x, y+20)
+        # Evolution seems to automatically open the message
 
         time.sleep(time_remaining)
         ctx.screenshot("app.png")
