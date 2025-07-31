@@ -35,6 +35,7 @@ def custom_term(app: App):
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
     folder_options = (lib.get_resource("experiment_folder.png"), lib.get_resource("experiment_folder_highlighted.png"))
     inbox_options = (lib.get_resource("inbox_icon.png"), lib.get_resource("inbox_icon_highlighted.png"))
+    die_evolution_die()
     with ctx.monitor("evolution"), ctx.start_app(["evolution"], custom_term_routine=custom_term):
         # Run experiment
         time_remaining = 30
