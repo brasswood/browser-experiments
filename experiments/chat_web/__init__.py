@@ -14,34 +14,26 @@
 
 import time
 import pyautogui
-from pyautogui import ImageNotFoundException
 from ..lib import Context
 from .. import lib
 
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
-    button2 = lib.get_resource("open_hw_chat_button.png")
-    google = lib.get_resource("google.png")
+    chat_button = lib.get_resource("open_hw_chat_button.png")
     init_page = "about:blank" if do_baseline else "mov.im/chat"
     with ctx.monitor("chromium"), ctx.start_app(["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", init_page]):
         if do_baseline:
-            try:
-                pyautogui.locateOnScreen(str(google))
-                raise Exception("error: set startup page to about:blank")
-            except ImageNotFoundException:
-                pass
             # wait 30 on the blank page
             time.sleep(30)
             ctx.screenshot("blank.png")
             # navigate to mov.im/chat
             lib.load_page("chromium", 'mov.im/chat')
-        start = time.time()
-        # try to click Open Hardware Chat, waiting up to 10 seconds for the page to load
-        point = pyautogui.locateCenterOnScreen(str(button2), minSearchTime=10, confidence=0.9)
-        assert point is not None
-        (x, y) = point
-        pyautogui.click(x, y)
+        time_remaining = 30
+        # try to click Open Hardware Chat
+        point, t = lib.locate_center_time(str(chat_button), time_remaining)
+        time_remaining -= t
+        pyautogui.click(*point)
         # sit for the remaining time out of 30 seconds since navigating to chat
-        time.sleep(30 - (time.time() - start))
+        time.sleep(time_remaining)
         ctx.screenshot("app.png")
 
 def main() -> None:

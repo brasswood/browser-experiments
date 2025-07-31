@@ -14,12 +14,10 @@
 
 import time
 import pyautogui
-from pyautogui import ImageNotFoundException
 from ..lib import Context
 from .. import lib
 
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
-    google = lib.get_resource("google.png")
     init_page =  "about:blank" if do_baseline else "outlook.office365.com"
     folder = lib.get_resource("experiment_folder.png")
     margin = lib.get_resource("message_margin.png")
@@ -27,11 +25,6 @@ def run_experiment(ctx: Context, do_baseline: bool) -> None:
     nothing_selected = lib.get_resource("nothing_selected.png")
     with ctx.monitor("chromium"), ctx.start_app(["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", init_page]):
         if do_baseline:
-            try:
-                pyautogui.locateOnScreen(str(google))
-                raise Exception("error: set startup page to about:blank")
-            except ImageNotFoundException:
-                pass
             # wait 30 on the blank page
             time.sleep(30)
             ctx.screenshot("blank.png")

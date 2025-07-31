@@ -13,21 +13,13 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import time
-import pyautogui
-from pyautogui import ImageNotFoundException
 from ..lib import Context
 from .. import lib
 
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
-    google = lib.get_resource("google.png")
     init_page = "about:blank" if do_baseline else "calendar.google.com"
     with ctx.monitor("chromium"), ctx.start_app(["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", init_page]):
         if do_baseline:
-            try:
-                pyautogui.locateOnScreen(str(google))
-                raise Exception("error: set startup page to about:blank")
-            except ImageNotFoundException:
-                pass
             # wait 30 on the blank page
             time.sleep(30)
             ctx.screenshot("blank.png")
