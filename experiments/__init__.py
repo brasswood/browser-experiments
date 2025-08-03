@@ -27,23 +27,25 @@ class ExperimentParams:
 
 RATE = 0.8
 N = 17
+INIT_MEMORY = 7000 * MEGABYTE
 # N = 1
+MEMS = lib.decay(INIT_MEMORY, RATE, N)
 SAMPLES = 10
 # SAMPLES = 1
 DO_BASELINE=False
 
 ALL_MEM: list[ExperimentParams] = [
-    ExperimentParams(blank_web, lib.decay(410 * MEGABYTE, RATE, N)),
-    ExperimentParams(blank_firefox, lib.decay(470 * MEGABYTE, RATE, N)),
-    ExperimentParams(calendar_web, lib.decay(620 * MEGABYTE, RATE, N)),
-    ExperimentParams(calendar_firefox, lib.decay(820 * MEGABYTE, RATE, N)),
-    ExperimentParams(calendar_native, lib.decay(130 * MEGABYTE, RATE, N)),
-    ExperimentParams(chat_web, lib.decay(520 * MEGABYTE, RATE, N)),
-    ExperimentParams(chat_firefox, lib.decay(520 * MEGABYTE, RATE, N)),
-    ExperimentParams(chat_native, lib.decay(230 * MEGABYTE, RATE, N)),
-    ExperimentParams(mail_web, lib.decay(870 * MEGABYTE, RATE, N)),
-    ExperimentParams(mail_firefox, lib.decay(980 * MEGABYTE, RATE, N)),
-    ExperimentParams(mail_native, lib.decay(310 * MEGABYTE, RATE, N)),
+    ExperimentParams(blank_web, MEMS),
+    ExperimentParams(blank_firefox, MEMS),
+    ExperimentParams(calendar_web, MEMS),
+    ExperimentParams(calendar_firefox, MEMS),
+    ExperimentParams(calendar_native, MEMS),
+    ExperimentParams(chat_web, MEMS),
+    ExperimentParams(chat_firefox, MEMS),
+    ExperimentParams(chat_native, MEMS),
+    ExperimentParams(mail_web, MEMS),
+    ExperimentParams(mail_firefox, MEMS),
+    ExperimentParams(mail_native, MEMS),
 ]
 
 def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:

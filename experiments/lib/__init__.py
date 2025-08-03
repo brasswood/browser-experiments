@@ -165,7 +165,7 @@ def decay(start: int, rate: float, n: int) -> list[int | None]:
     if n > 0:
         ret.append(None)
         mem = start
-        for _ in range(n-1): # want to include None, start, all the way up to start * rate**n
+        for _ in range(n-1): # want to include None, start, all the way up to start * rate**(n-1)
             ret.append(mem)
             mem = int(mem*rate)
     return ret
