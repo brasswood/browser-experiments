@@ -170,6 +170,20 @@ def decay(start: int, rate: float, n: int) -> list[int | None]:
             mem = int(mem*rate)
     return ret
 
+def decay2(start: int, end: int, rate: float) -> list[int | None]:
+    """
+    start: first memory constraint
+    end: last memory constraint (in practice: include the first value below end)
+    rate: rate to decay the memory constraint each iteration (fraction)
+    """
+    ret: list[int | None] = [None]
+    cur = start
+    while cur > end:
+        ret.append(cur)
+        cur = int(cur*rate)
+    ret.append(cur)
+    return ret
+
 class Args:
     def __init__(self, output_dir: Path, mem: int | None):
         self.output_dir = output_dir
