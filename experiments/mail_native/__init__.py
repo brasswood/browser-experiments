@@ -44,6 +44,10 @@ def run_experiment(ctx: Context, do_baseline: bool) -> None:
         time_remaining -= t
         pyautogui.click(*point)
 
+        # wait until inbox folder is highlighted/green
+        _point, t = lib.locate_center_time(inbox_options[1], time_remaining)
+        time_remaining -= t
+
         point, t = lib.locate_center_time(folder_options, time_remaining)
         time_remaining -= t
         pyautogui.click(*point)
