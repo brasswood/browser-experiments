@@ -26,12 +26,11 @@ class ExperimentParams:
         return self.module.__name__.split('.')[-1]
 
 INIT_MEMORY = 2000 * MEGABYTE
-FINAL_MEMORY = 45 * MEGABYTE
 RATE = 0.9
-# N = 50
+N = 50
 # N = 1
-MEMS = lib.decay2(INIT_MEMORY, FINAL_MEMORY, RATE)
-SAMPLES = 35
+MEMS = lib.decay(INIT_MEMORY, RATE, N)
+SAMPLES = 15
 # SAMPLES = 1
 DO_BASELINE=False
 

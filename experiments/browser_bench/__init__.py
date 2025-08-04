@@ -28,15 +28,18 @@ class ExperimentParams:
 
 URL = "https://browserbench.org/Speedometer3.1/"
 
-RATE = 0.8
-N = 17
+INIT_MEMORY = 2000 * MEGABYTE
+RATE = 0.9
+N = 50
+MEMS = lib.decay(INIT_MEMORY, RATE, N)
 # N = 1
-SAMPLES = 10
+
+SAMPLES = 15
 # SAMPLES = 1
 
 EXPERIMENTS = [
-    ExperimentParams("chromium", ["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", URL], lib.decay(910 * MEGABYTE, RATE, N)),
-    ExperimentParams("firefox", ["firefox", "-P", "Experiments", URL], lib.decay(1380 * MEGABYTE, RATE, N)),
+    ExperimentParams("chromium", ["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", URL], MEMS),
+    ExperimentParams("firefox", ["firefox", "-P", "Experiments", URL], MEMS),
 ]
 
 def main() -> None:
