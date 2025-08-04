@@ -19,12 +19,17 @@ from ..lib import Context, MEGABYTE, TookLongTimeException
 from .. import lib
 import pyautogui
 from pyautogui import ImageNotFoundException
+import subprocess
 
 class ExperimentParams:
-    def __init__(self, name: str, command: list[str], mems: list[int | None]):
+    def __init__(self, name: str, exe: str, args: list[str], mems: list[int | None]):
         self.name = name
-        self.command = command
+        self.exe = exe
+        self.args = args
         self.mems = mems
+
+    def command(self) -> list[str]:
+        return [self.exe] + self.args
 
 URL = "https://browserbench.org/Speedometer3.1/"
 
@@ -38,8 +43,8 @@ SAMPLES = 15
 # SAMPLES = 1
 
 EXPERIMENTS = [
-    ExperimentParams("chromium", ["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", URL], MEMS),
-    ExperimentParams("firefox", ["firefox", "-P", "Experiments", URL], MEMS),
+    ExperimentParams("chromium", "chromium-browser", ["--hide-crash-restore-bubble", "--no-sandbox", URL], MEMS),
+    ExperimentParams("firefox", "firefox", ["-P", "Experiments", URL], MEMS),
 ]
 
 def main() -> None:
@@ -50,11 +55,14 @@ def main() -> None:
             details_button = lib.get_resource(f"details_button_{params.name}.png")
             copy_json_button = lib.get_resource(f"copy_json_button_{params.name}.png")
             with out_ctx.get_child(params.name) as browser_ctx:
+                with browser_ctx.open("version", 'w') as f:
+                    f.write(subprocess.run([params.exe, "--version"]).stdout)
+
                 for (i, mem) in enumerate(params.mems):
                     with browser_ctx.get_child_with_mem(i, mem) as mem_ctx:
                         try:
                             lib.assert_not_running(params.name)
-                            with mem_ctx.start_app(params.command):
+                            with mem_ctx.start_app(params.command()):
                                 for j in range(SAMPLES):
                                     with mem_ctx.get_child_with_sample(j) as sample_ctx:
                                         try:

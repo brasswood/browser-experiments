@@ -16,6 +16,10 @@ import time
 from ..lib import Context
 from .. import lib
 import pyautogui
+import subprocess
+
+def get_version() -> str:
+    return str(subprocess.run(["firefox", "--version"]).stdout)
 
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
     init_page = "about:blank" if do_baseline else "outlook.office365.com"

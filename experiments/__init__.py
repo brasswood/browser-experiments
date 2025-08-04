@@ -14,7 +14,7 @@
 
 from typing import List
 from types import ModuleType
-from . import calendar_chromium, calendar_firefox, calendar_native, chat_chromium, chat_firefox, chat_native, mail_chromium, mail_firefox, mail_native, blank_web, blank_firefox
+from . import blank_chromium, calendar_chromium, calendar_firefox, calendar_native, chat_chromium, chat_firefox, chat_native, mail_chromium, mail_firefox, mail_native, blank_firefox
 from .lib import MEGABYTE, Context, TookLongTimeException
 from . import lib
 
@@ -35,7 +35,7 @@ SAMPLES = 15
 DO_BASELINE=False
 
 ALL_MEM: list[ExperimentParams] = [
-    ExperimentParams(blank_web, MEMS),
+    ExperimentParams(blank_chromium, MEMS),
     ExperimentParams(blank_firefox, MEMS),
     ExperimentParams(calendar_chromium, MEMS),
     ExperimentParams(calendar_firefox, MEMS),
@@ -52,6 +52,8 @@ def run_all(experiments: list[ExperimentParams]=ALL_MEM) -> None:
     with Context.from_module("classic") as top_ctx, top_ctx.get_child("out") as out_ctx:
         for params in experiments:
             with out_ctx.get_child(params.name()) as ex_ctx:
+                with ex_ctx.open("version", 'w') as f:
+                    f.write(params.module.get_version())
                 for (i, mem) in enumerate(params.mems):
                     took_long_time = False
                     with ex_ctx.get_child_with_mem(i, mem) as mem_ctx:

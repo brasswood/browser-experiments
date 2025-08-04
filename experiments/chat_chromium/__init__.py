@@ -16,6 +16,10 @@ import time
 import pyautogui
 from ..lib import Context
 from .. import lib
+import subprocess
+
+def get_version() -> str:
+    return str(subprocess.run(["chromium-browser", "--version"]).stdout)
 
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
     chat_button = lib.get_resource("open_hw_chat_button.png")

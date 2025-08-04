@@ -19,6 +19,9 @@ import subprocess
 import signal
 import pyautogui
 
+def get_version() -> str:
+    return str(subprocess.run(["evolution", "--version"]).stdout)
+
 def die_evolution_die():
     # Well this sucks
     subprocess.run(["systemctl", "--user", "stop", "evolution-addressbook-factory.service"])
