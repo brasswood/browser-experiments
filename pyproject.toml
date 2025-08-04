@@ -18,9 +18,9 @@ dependencies = [
 
 [project.scripts]
 ex-calendar-native = "experiments.calendar_native:main"
-ex-calendar-web = "experiments.calendar_web:main"
-ex-chat-web = "experiments.chat_web:main"
-ex-mail-web = "experiments.mail_web:main"
+ex-calendar-web = "experiments.calendar_chromium:main"
+ex-chat-web = "experiments.chat_chromium:main"
+ex-mail-web = "experiments.mail_chromium:main"
 ex-chat-native = "experiments.chat_native:main"
 ex-mail-native = "experiments.mail_native:main"
 gui-apps = "experiments:run_all"

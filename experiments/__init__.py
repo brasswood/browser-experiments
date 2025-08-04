@@ -14,7 +14,7 @@
 
 from typing import List
 from types import ModuleType
-from . import calendar_web, calendar_firefox, calendar_native, chat_web, chat_firefox, chat_native, mail_web, mail_firefox, mail_native, blank_web, blank_firefox
+from . import calendar_chromium, calendar_firefox, calendar_native, chat_chromium, chat_firefox, chat_native, mail_chromium, mail_firefox, mail_native, blank_web, blank_firefox
 from .lib import MEGABYTE, Context, TookLongTimeException
 from . import lib
 
@@ -37,13 +37,13 @@ DO_BASELINE=False
 ALL_MEM: list[ExperimentParams] = [
     ExperimentParams(blank_web, MEMS),
     ExperimentParams(blank_firefox, MEMS),
-    ExperimentParams(calendar_web, MEMS),
+    ExperimentParams(calendar_chromium, MEMS),
     ExperimentParams(calendar_firefox, MEMS),
     ExperimentParams(calendar_native, MEMS),
-    ExperimentParams(chat_web, MEMS),
+    ExperimentParams(chat_chromium, MEMS),
     ExperimentParams(chat_firefox, MEMS),
     ExperimentParams(chat_native, MEMS),
-    ExperimentParams(mail_web, MEMS),
+    ExperimentParams(mail_chromium, MEMS),
     ExperimentParams(mail_firefox, MEMS),
     ExperimentParams(mail_native, MEMS),
 ]
