@@ -17,7 +17,7 @@ from .lib import Context
 import subprocess
 
 def get_version() -> str:
-    return str(subprocess.run(["chromium-browser", "--version"]).stdout)
+    return str(subprocess.run(["chromium-browser", "--version"], capture_output=True).stdout)
 
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
     with ctx.monitor("chromium"), ctx.start_app(["chromium-browser", "--hide-crash-restore-bubble", "--no-sandbox", "about:blank"]):

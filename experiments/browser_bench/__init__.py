@@ -56,7 +56,7 @@ def main() -> None:
             copy_json_button = lib.get_resource(f"copy_json_button_{params.name}.png")
             with out_ctx.get_child(params.name) as browser_ctx:
                 with browser_ctx.open("version", 'w') as f:
-                    f.write(subprocess.run([params.exe, "--version"]).stdout)
+                    f.write(str(subprocess.run([params.exe, "--version"], capture_output=True).stdout))
 
                 for (i, mem) in enumerate(params.mems):
                     with browser_ctx.get_child_with_mem(i, mem) as mem_ctx:

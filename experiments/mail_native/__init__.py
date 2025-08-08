@@ -20,7 +20,7 @@ import signal
 import pyautogui
 
 def get_version() -> str:
-    return str(subprocess.run(["evolution", "--version"]).stdout)
+    return str(subprocess.run(["evolution", "--version"], capture_output=True).stdout)
 
 def die_evolution_die():
     # Well this sucks

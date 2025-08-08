@@ -17,7 +17,7 @@ from .lib import Context
 import subprocess
 
 def get_version() -> str:
-    return str(subprocess.run(["firefox", "--version"]).stdout)
+    return str(subprocess.run(["firefox", "--version"], capture_output=True).stdout)
 
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
     with ctx.monitor("firefox"), ctx.start_app(["firefox", "-P", "Experiments", "about:blank"]):
