@@ -217,8 +217,8 @@ def format_exception(e: BaseException) -> str:
 
 # Returns (point, time_took) if image found within timeout, otherwise raises ImageNotFoundException.
 # If image is list, tries to find any one of the images.
-def locate_center_time(image: str | Path | Sequence[str | Path], timeout: float, confidence: float = 0.9) -> tuple[tuple[int, int], float]:
-    if isinstance(image, Sequence):
+def locate_center_time(image: str | Path | list[str | Path], timeout: float, confidence: float = 0.9) -> tuple[tuple[int, int], float]:
+    if isinstance(image, list):
         start = time.time()
         while True:
             for im in image:

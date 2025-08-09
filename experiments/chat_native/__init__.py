@@ -26,7 +26,7 @@ def run_experiment(ctx: Context, do_baseline: bool) -> None:
     with ctx.monitor("dino"), ctx.start_app(["dino"]):
         time_remaining = 30
         # try to click Open Hardware Chat
-        point, t = lib.locate_center_time(str(chat_icon), time_remaining)
+        point, t = lib.locate_center_time(chat_icon, time_remaining)
         time_remaining -= t
         pyautogui.click(*point)
         # sit for the remaining time out of 30 seconds since navigating to chat

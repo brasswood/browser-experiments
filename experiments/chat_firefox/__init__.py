@@ -33,7 +33,7 @@ def run_experiment(ctx: Context, do_baseline: bool) -> None:
             lib.load_page("firefox", 'mov.im/chat')
         time_remaining = 30
         # try to click Open Hardware Chat
-        point, t = lib.locate_center_time(str(chat_button), time_remaining)
+        point, t = lib.locate_center_time(chat_button, time_remaining)
         time_remaining -= t
         pyautogui.click(*point)
         # sit for the remaining time out of 30 seconds since navigating to chat
