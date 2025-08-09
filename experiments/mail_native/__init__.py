@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+from pathlib import Path
 import time
 from ..lib import App, Context
 from .. import lib
@@ -36,8 +37,8 @@ def custom_term(app: App):
     die_evolution_die()
 
 def run_experiment(ctx: Context, do_baseline: bool) -> None:
-    folder_options = (lib.get_resource("experiment_folder.png"), lib.get_resource("experiment_folder_highlighted.png"))
-    inbox_options = (lib.get_resource("inbox_icon.png"), lib.get_resource("inbox_icon_highlighted.png"))
+    folder_options: list[str | Path] = [lib.get_resource("experiment_folder.png"), lib.get_resource("experiment_folder_highlighted.png")]
+    inbox_options: list[str | Path] = [lib.get_resource("inbox_icon.png"), lib.get_resource("inbox_icon_highlighted.png")]
     die_evolution_die()
     with ctx.monitor("evolution"), ctx.start_app(["evolution"], custom_term_routine=custom_term):
         # Run experiment
